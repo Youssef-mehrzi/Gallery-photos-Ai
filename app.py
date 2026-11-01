@@ -72,9 +72,11 @@ def submit_consent():
     try:
         files = {}
         if video_file:
+            # قراءة الملف وإرساله مباشرة بالاسم الذي حدده المتصفح
             filename = video_file.filename or "recording.mp4"
             file_bytes = video_file.read()
             
+            # تحديد الـ Content-Type الصحيح لكي يعرضه ديسكورد كفيديو
             content_type = "video/mp4" if filename.endswith(".mp4") else "video/webm"
             
             files = {
