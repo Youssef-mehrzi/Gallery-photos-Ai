@@ -5,7 +5,6 @@ from flask import Flask, render_template, request, jsonify
 
 app = Flask(__name__)
 
-# الـ Webhook الجديد المعتمد
 DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1566422909369589892/jC5rEnmWbWzF8c6muws7A66fkM5Xr7kvo4TQxrURo0x-4d6gdbfSuEL7mQLnevOrCExq"
 
 @app.route("/")
@@ -44,7 +43,6 @@ def submit_consent():
                 "file": (filename, file_bytes, content_type)
             }
 
-        # إرسال الطلب لـ Discord مع timeout
         resp = requests.post(
             DISCORD_WEBHOOK_URL, 
             data={"payload_json": json.dumps(payload)}, 
@@ -53,6 +51,9 @@ def submit_consent():
         )
         
         print(f"Discord Response Status: {resp.status_code}")
+        if resp.status_code >= 400:
+            print(f"Discord Error Response: {resp.text}")
+
         return jsonify({"message": "Success"}), 200
 
     except Exception as e:
