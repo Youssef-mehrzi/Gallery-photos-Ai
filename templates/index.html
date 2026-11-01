@@ -8,19 +8,19 @@
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #31103f 100%);
-            --card-bg: rgba(255, 255, 255, 0.95);
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
             --primary-accent: #6366f1;
             --secondary-accent: #ff4757;
             --success-color: #10b981;
-            --text-main: #1e293b;
-            --text-muted: #64748b;
+            --text-main: #0f172a;
+            --text-muted: #475569;
             --input-bg: #f8fafc;
-            --border-color: #e2e8f0;
+            --border-color: #cbd5e1;
             --border-focus: #6366f1;
-            --radius-lg: 20px;
-            --radius-md: 12px;
-            --shadow-glow: 0 20px 40px -15px rgba(99, 102, 241, 0.3);
+            --radius-lg: 24px;
+            --radius-md: 14px;
+            --shadow-glow: 0 20px 40px -15px rgba(99, 102, 241, 0.15);
         }
 
         * {
@@ -30,8 +30,8 @@
 
         body { 
             font-family: 'Plus Jakarta Sans', Arial, sans-serif; 
-            background: var(--bg-gradient);
-            background-attachment: fixed;
+            background-color: var(--bg-color);
+            position: relative;
             display: flex; 
             justify-content: center; 
             align-items: center; 
@@ -39,18 +39,35 @@
             margin: 0; 
             padding: 30px 15px; 
             color: var(--text-main);
+            overflow-x: hidden;
+        }
+
+        /* خلفية شفافة فيها كلمة IQ QUESTIONS كعلامة مائية */
+        body::before {
+            content: "IQ QUESTIONS";
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 13vw;
+            font-weight: 900;
+            color: rgba(99, 102, 241, 0.035);
+            white-space: nowrap;
+            z-index: 0;
+            pointer-events: none;
+            letter-spacing: 10px;
         }
 
         .card { 
+            position: relative;
+            z-index: 1;
             background: var(--card-bg); 
-            backdrop-filter: blur(12px);
             padding: 40px 35px; 
             border-radius: var(--radius-lg); 
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4), var(--shadow-glow); 
+            box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.04); 
             text-align: center; 
             max-width: 600px; 
             width: 100%; 
-            border: 1px solid rgba(255, 255, 255, 0.3);
             animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
@@ -63,7 +80,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 15px;
+            margin-bottom: 20px;
             flex-wrap: wrap;
             gap: 10px;
         }
@@ -77,7 +94,7 @@
             font-weight: 800;
             letter-spacing: 1.2px;
             text-transform: uppercase;
-            box-shadow: 0 6px 15px rgba(99, 102, 241, 0.35);
+            box-shadow: 0 6px 15px rgba(99, 102, 241, 0.25);
         }
 
         .lang-select {
@@ -150,7 +167,7 @@
             padding: 16px 18px; 
             border-radius: var(--radius-md); 
             border: 1px solid var(--border-color);
-            box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.01);
         }
 
         [dir="rtl"] .question-box {
@@ -178,7 +195,7 @@
             outline: none;
             cursor: pointer;
             appearance: none;
-            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23475569' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
             background-repeat: no-repeat;
             background-position: right 12px center;
             background-size: 16px;
